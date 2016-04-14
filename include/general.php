@@ -1361,7 +1361,7 @@ function auto_create_user_account()
 			{
 			global $rs_session;
 			$rs_session=get_rs_session_id();
-			if($rs_session==false){break;}
+			if($rs_session==false){continue;}
 			# Copy any anonymous session collections to the new user account 
 			if (!function_exists("get_session_collections"))
 				{
@@ -1430,7 +1430,7 @@ function auto_create_user_account()
 			get_config_option($approval_notify_user['ref'],'email_user_notifications', $send_email, $email_user_notifications);    
 			if($send_email && $approval_notify_user["email"]!="")
 				{
-				send_mail($email_notify,$applicationname . ": " . $lang["requestuserlogin"] . " - " . getval("name",""),$message,"",$user_email,"emailuserrequest",$templatevars,getval("name",""));
+				send_mail($approval_notify_user["email"],$applicationname . ": " . $lang["requestuserlogin"] . " - " . getval("name",""),$message,"",$user_email,"emailuserrequest",$templatevars,getval("name",""));
 				}        
 			else
 				{
