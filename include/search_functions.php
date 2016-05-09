@@ -1748,12 +1748,12 @@ function search_form_to_search_query($fields,$fromsearchbar=false)
                         }
                     else
                         {
-                        $datepart.="-01";
+                        $datepart.="";
                         }
                     }
                 else
                     {
-                    $datepart.="-01-01";
+                    $datepart.="";
                     }
                 }           
                 
