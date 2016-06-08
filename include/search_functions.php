@@ -292,6 +292,12 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
                             $fieldinfo_cache[$kw[0]]=$fieldinfo;
                         }
 
+                        if(0 === count($fieldinfo))
+                            {
+                            debug('Field short name not found.');
+                            return false;
+                            }
+
                         if ($fieldinfo[0]["type"] == 7)
                             {
                             $ckeywords=preg_split('/[\|;]/',$kw[1]);
@@ -299,11 +305,6 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
                         else
                             {
                             $ckeywords=explode(";",$kw[1]);
-                            }
-
-                        if (count($fieldinfo)==0)
-                            {
-                            debug("Field short name not found.");return false;
                             }
                         
                         # Create an array of matching field IDs.
