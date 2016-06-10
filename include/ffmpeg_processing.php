@@ -224,7 +224,9 @@ if (isset($ffmpeg_alternatives))
             $tmp = hook("ffmpegmodaltparams", "", array($shell_exec_cmd, $ffmpeg_fullpath, $file, $n, $aref));
             if($tmp) {$shell_exec_cmd = $tmp;}
             
-            $output = run_command($shell_exec_cmd);
+            // $output = run_command($shell_exec_cmd);  // this was failing to return when standard out was producing too much output
+            $output = run_external($shell_exec_cmd,$return_code);
+
 
 	    if(isset($qtfaststart_path))
 			{
