@@ -237,7 +237,39 @@ if (!hook("renderresultsmallthumb"))
 			if (!hook("replaceresourceplaneliconssmall"))
 				{ ?>
 				<div class="ResourcePanelIcons">
-					<?php 
+					<?php
+					
+					if(!hook("smallthumbscheckboxes"))
+						{
+							if ($use_checkboxes_for_selection)
+								{
+								?>
+								<input 
+								type="checkbox" 
+								id="check<?php echo htmlspecialchars($ref)?>" 
+								class="checkselect" 
+								<?php 
+								if (in_array($ref,$collectionresources))
+										{ ?>
+										checked
+										<?php 
+										} ?> 
+								onclick="if (jQuery('#check<?php echo htmlspecialchars($ref)?>').attr('checked')=='checked'){ AddResourceToCollection(event,<?php echo htmlspecialchars($ref)?>); } else if (jQuery('#check<?php echo htmlspecialchars($ref)?>').attr('checked')!='checked'){ RemoveResourceFromCollection(event,<?php echo htmlspecialchars($ref)?>); }"
+						>
+						&nbsp;
+								<?php 
+								}
+							else
+								{
+								?>
+								<input type="checkbox" style="opacity: 0;">
+								<?php
+								}
+					
+						}	 # end hook thumbscheckboxes
+					
+					
+					
 					if ($display_resource_id_in_thumbnail && $ref>0) 
 						{ 
 						echo htmlspecialchars($ref); 
