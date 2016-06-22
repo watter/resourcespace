@@ -226,7 +226,7 @@ if ($use_plugins_manager)
 	    $plugin_yaml_path = get_plugin_path($plugin["name"])."/".$plugin["name"].".yaml";
 	    $py = get_plugin_yaml($plugin_yaml_path, false);
 	    array_push($active_yaml,$py);
-	    if ($plugin['enabled_groups']=='' && !isset($py["userpreferencegroup"]))
+	    if ($plugin['enabled_groups'] == '')
 		    {
 		    # Add to the plugins array if not already present which is what we are working with
 		    $plugins[]=$plugin['name'];
@@ -236,7 +236,7 @@ if ($use_plugins_manager)
 	for ($n=count($active_plugins)-1;$n>=0;$n--)
 		{
 		$plugin=$active_plugins[$n];
-		if ($plugin['enabled_groups']=='' && !isset($active_yaml[$n]["userpreferencegroup"]))
+		if ($plugin['enabled_groups'] == '')
 			{
 			include_plugin_config($plugin['name'], $plugin['config'], $plugin['config_json']);
 			}
@@ -286,6 +286,7 @@ for ($n=count($plugins)-1;$n>=0;$n--)
 	{
 	register_plugin_language($plugins[$n]);
 	}
+
 global $suppress_headers;
 # Set character set.
 if (($pagename!="download") && ($pagename!="graph") && !$suppress_headers) {header("Content-Type: text/html; charset=UTF-8");} // Make sure we're using UTF-8.
@@ -1703,7 +1704,7 @@ function setup_user($userdata)
         # Given an array of user data loaded from the user table, set up all necessary global variables for this user
         # including permissions, current collection, config overrides and so on.
         
-    global $userpermissions, $usergroup, $usergroupname, $usergroupparent, $useremail, $userpassword, $userfullname, $userfixedtheme, 
+    global $userpermissions, $usergroup, $usergroupname, $usergroupparent, $useremail, $userpassword, $userfullname, 
            $ip_restrict_group, $ip_restrict_user, $rs_session, $global_permissions, $userref, $username, $useracceptedterms, $anonymous_user_session_collection, 
            $global_permissions_mask, $user_preferences, $userrequestmode, $usersearchfilter, $usereditfilter, $userderestrictfilter, $hidden_collections, 
            $userresourcedefaults, $userrequestmode, $request_adds_to_collection, $usercollection, $lang, $validcollection, $userpreferences;
@@ -1725,7 +1726,6 @@ function setup_user($userdata)
         $useremail=$userdata["email"];
         $userpassword=$userdata["password"];
         $userfullname=$userdata["fullname"];
-	if (!isset($userfixedtheme)) {$userfixedtheme=$userdata["fixed_theme"];} # only set if not set in config.php
 
         $ip_restrict_group=trim($userdata["ip_restrict_group"]);
         $ip_restrict_user=trim($userdata["ip_restrict_user"]);
