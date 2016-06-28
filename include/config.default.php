@@ -2118,6 +2118,7 @@ $enable_plugin_upload = true;
 # Note that a Google Maps API key is no longer required.
 #Disable geocoding features?
 $disable_geocoding = false;
+$use_google_maps = false;
 
 # OpenLayers: The default center and zoom for the map view when searching or selecting a new location. This is a world view.
 # For example, to specify the USA use: #$geolocation_default_bounds="-10494743.596017,4508852.6025659,4";
