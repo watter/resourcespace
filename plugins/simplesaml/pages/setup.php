@@ -30,8 +30,7 @@ if ((getval('submit','')!='') || (getval('save','')!=''))
 	$simplesaml['simplesaml_fallback_group'] = getvalescaped('simplesaml_fallback_group','');
 	$simplesaml['simplesaml_update_group'] = getvalescaped('simplesaml_update_group','');
 	$simplesaml['simplesaml_fullname_separator'] = getvalescaped('simplesaml_fullname_separator','');
-    $simplesaml['simplesaml_username_separator'] = getvalescaped('simplesaml_username_separator','');
-	$simplesaml['simplesaml_custom_attributes'] = getvalescaped('simplesaml_custom_attributes', '');
+	$simplesaml['simplesaml_username_separator'] = getvalescaped('simplesaml_username_separator','');
 	
 	$samlgroups = $_REQUEST['samlgroup'];
 	$rsgroups = $_REQUEST['rsgroup'];
@@ -95,25 +94,26 @@ include "../../../include/header.php";
 <?php echo config_boolean_field("simplesaml_prefer_standard_login",$lang['simplesaml_prefer_standard_login'],$simplesaml_prefer_standard_login,30);?>
 
 
+<?php echo config_section_header($lang['simplesaml_idp_configuration'],$lang['simplesaml_idp_configuration_description']);?>
+
+
+<?php echo config_text_input("simplesaml_username_attribute",$lang['simplesaml_username_attribute'],$simplesaml_username_attribute);?>
+<?php echo config_text_input("simplesaml_username_separator",$lang['simplesaml_username_separator'],$simplesaml_username_separator);?>
+<?php echo config_text_input("simplesaml_fullname_attribute",$lang['simplesaml_fullname_attribute'],$simplesaml_fullname_attribute);?>
+<?php echo config_text_input("simplesaml_fullname_separator",$lang['simplesaml_fullname_separator'],$simplesaml_fullname_separator);?>
+<?php echo config_text_input("simplesaml_email_attribute",$lang['simplesaml_email_attribute'],$simplesaml_email_attribute);?>
+<?php echo config_text_input("simplesaml_group_attribute",$lang['simplesaml_group_attribute'],$simplesaml_group_attribute);?>
+
+
+<?php echo config_boolean_field("simplesaml_update_group",$lang['simplesaml_update_group'],$simplesaml_update_group,30);?>
+
 <?php
-echo config_section_header($lang['simplesaml_idp_configuration'],$lang['simplesaml_idp_configuration_description']);
-echo config_text_input("simplesaml_username_attribute",$lang['simplesaml_username_attribute'],$simplesaml_username_attribute);
-echo config_text_input("simplesaml_username_separator",$lang['simplesaml_username_separator'],$simplesaml_username_separator);
-echo config_text_input("simplesaml_fullname_attribute",$lang['simplesaml_fullname_attribute'],$simplesaml_fullname_attribute);
-echo config_text_input("simplesaml_fullname_separator",$lang['simplesaml_fullname_separator'],$simplesaml_fullname_separator);
-echo config_text_input("simplesaml_email_attribute",$lang['simplesaml_email_attribute'],$simplesaml_email_attribute);
-echo config_text_input("simplesaml_group_attribute",$lang['simplesaml_group_attribute'],$simplesaml_group_attribute);
-echo config_boolean_field("simplesaml_update_group",$lang['simplesaml_update_group'],$simplesaml_update_group,30);
-
-$rsgroupoption = array();
+$rsgroupoption=array();
 foreach($rsgroups as $rsgroup)
-	{
-    $rsgroupoption[$rsgroup["ref"]] = $rsgroup["name"];
-    }
+	{$rsgroupoption[$rsgroup["ref"]]=$rsgroup["name"];}
+echo config_single_select("simplesaml_fallback_group",$lang['simplesaml_fallback_group'],$simplesaml_fallback_group,$rsgroupoption, true);?>
 
-echo config_single_select("simplesaml_fallback_group",$lang['simplesaml_fallback_group'],$simplesaml_fallback_group,$rsgroupoption, true);
-echo config_text_input('simplesaml_custom_attributes', $lang['simplesaml_custom_attributes'], $simplesaml_custom_attributes);
-?>
+
 <div class="Question">
 <h3><?php echo $lang['simplesaml_groupmapping']; ?></h3>
 <table id='groupmaptable'>
