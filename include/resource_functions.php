@@ -1513,8 +1513,10 @@ function delete_resource($ref)
 		return true;
 		}
 	
-	# Get info
-	
+    # FStemplate support - do not allow samples from the template to be deleted
+    if (resource_file_readonly($ref)) {return false;}
+    
+    	
 	# Is transcoding
 	if ($resource['is_transcoding']==1) {return false;} # Can't delete when transcoding
 
@@ -4084,4 +4086,11 @@ function get_video_snapshots($resource_id, $file_path = false, $count_only = fal
     while(true === $snapshot_found);
 
     return (!$count_only ? $snapshots_found : count($snapshots_found));
+    }
+
+function resource_file_readonly($ref)
+    {
+    # Even if the user has edit access to a resource, the main file may be read only.
+    global $fstemplate_alt_threshold;
+    return ($fstemplate_alt_threshold>0 && $ref<$fstemplate_alt_threshold);
     }

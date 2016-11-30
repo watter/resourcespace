@@ -21,6 +21,12 @@ $replace = getvalescaped("replace",""); # Replace Resource Batch
 $replace_resource=getvalescaped("replace_resource",""); # Option to replace existing resource file
 if($replace_resource && !get_edit_access($replace_resource)){$replace_resource=false;}
 
+if ($replace_resource && (!get_edit_access($replace_resource) || resource_file_readonly($replace_resource)))
+    {
+    $replace_resource = false;
+    }
+
+# Load the configuration for the selected resource type. Allows for alternative notification addresses, etc.
 # Load the configuration for the selected resource type. Allows for alternative notification addresses, etc.
 resource_type_config_override($resource_type);
 
@@ -585,7 +591,7 @@ if ($_FILES)
 							if($filename_field!="")
 								{
 								$target_resource=sql_array("select resource value from resource_data where resource_type_field='$filename_field' and value='$origuploadedfilename'","");
-								if(count($target_resource)==1)
+								if(count($target_resource)==1 && !resource_file_readonly($target_resource))
 									{
 									// A single resource has been found with the same filename
 									daily_stat("Resource upload",$target_resource[0]);
@@ -631,7 +637,7 @@ if ($_FILES)
                                         $ref = trim($s[0]);
 
                                         // is the first part of the filename numeric?
-                                        if(is_numeric($ref))
+                                        if(is_numeric($ref) && !resource_file_readonly($ref))
                                             {
                                             daily_stat("Resource upload",$ref);
 
