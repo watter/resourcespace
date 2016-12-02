@@ -104,7 +104,9 @@ function save_resource_data($ref,$multi,$autosave_field="")
             {
             // Fixed list  fields use node IDs directly
             if(in_array($fields[$n]['type'], $FIXED_LIST_FIELD_TYPES))
-                {       
+                {
+                $val = '';
+
                 // Get currently selected nodes for this field 
                 $current_field_nodes = get_resource_nodes($ref, $fields[$n]['ref']); 
                 debug("Current nodes for resource " . $ref . ": " . implode(",",$current_field_nodes));
@@ -132,16 +134,18 @@ function save_resource_data($ref,$multi,$autosave_field="")
 					{
 					$validnodes[$fieldnode["name"]]=$fieldnode["ref"];
 					}
-				
+
 				$node_options = array_flip($validnodes);
 				
 				$ui_selected_node_values=array_intersect($ui_selected_node_values,$validnodes);				
 					
-                $added_nodes = array_diff($ui_selected_node_values,$current_field_nodes);
+                $added_nodes = array_diff($ui_selected_node_values, $current_field_nodes);
+
 				debug("Adding nodes to resource " . $ref . ": " . implode(",",$added_nodes));
                 $nodes_to_add = $nodes_to_add + $added_nodes;
 				
                 $removed_nodes = array_diff($current_field_nodes,$ui_selected_node_values);    
+
 				debug("Removed nodes from resource " . $ref . ": " . implode(",",$removed_nodes));           
                 $nodes_to_remove = $nodes_to_remove + $removed_nodes;				
 								
@@ -163,6 +167,16 @@ function save_resource_data($ref,$multi,$autosave_field="")
 						}
 					resource_log($ref, LOG_CODE_EDITED, $fields[$n]["ref"], '', $existing_nodes_value, $new_nodes_val);
 					}
+
+                // Required fields that didn't change get the current value
+                if(1 == $fields[$n]['required'] && '' == $val)
+                    {
+                    // Build existing value:
+                    foreach($current_field_nodes as $current_field_node)
+                        {
+                        $val .= ",{$node_options[$current_field_node]}";
+                        }
+                    }
                 }
 			else
 				{
