@@ -8,44 +8,61 @@
 		{
 		include_once __DIR__ . "/../../include/db.php";
 		include_once __DIR__ . "/../../include/general.php";
-		
+		include __DIR__ . "/../../include/authenticate.php";	
+
+        $user         = getvalescaped('user', 0, true);
+        $seen         = getvalescaped('seen', 0, true);
+        $unseen       = getvalescaped('unseen', 0, true);
+        $allseen      = getvalescaped('allseen', 0, true);
+        $deleteusrmsg = getvalescaped('deleteusrmsg', 0, true);
+
+		if(0 < $user)
+			{
+			if(is_numeric($user) && !checkperm_user_edit($user))
+				{
+				exit($lang['error-permissiondenied']);
+				}
+			}
+		else
+			{
+			// no user specified so default to the current user
+			$user = $userref;
+			}
 
 		// It is an acknowledgement so set as seen and get out of here
-		if (isset($_GET['seen']))
+		if (0 < $seen)
 			{
-			message_seen($_GET['seen']);
+			message_seen($seen);
 			return;
 			}
 			
-		if (isset($_GET['unseen']))
+		if (0 < $unseen)
 			{
-			message_unseen($_GET['unseen']);
+			message_unseen($unseen);
 			return;
 			}
 
 		// Acknowledgement all messages then get out of here
-		if (isset($_GET['allseen']))
+		if (0 < $allseen)
 			{
-			message_seen_all($_GET['allseen']);
+			message_seen_all($allseen);
 			return;
 			}
 
 		// Purge messages that have an expired TTL then get out of here
-		if (isset($_GET['purge']))
+		if ('' != getval('purge', ''))
 			{
 			message_purge();
 			return;
 			}
-
-		if(isset($_GET['user']))
+		
+		// Delete a specific message from a single user
+		if (0 < $deleteusrmsg)
 			{
-			$user=$_GET['user'];
-			}
-		else
-			{
-			include __DIR__ . "/../../include/authenticate.php";	// no user specified so default to the current user
-			$user=$userref;
-			}
+			message_user_remove($deleteusrmsg);
+			return;
+			}	
+		
 
 		// Check if there are messages
 		$messages = array();
