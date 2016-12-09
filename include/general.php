@@ -3380,8 +3380,10 @@ function check_access_key($resource,$key)
 	
 	# Option to plugin in some extra functionality to check keys
 	if (hook("check_access_key","",array($resource,$key))===true) {return true;}
-	global $external_share_view_as_internal, $is_authenticated;
-    	if($external_share_view_as_internal && (isset($_COOKIE["user"]) && !(isset($is_authenticated) && $is_authenticated))){return false;} // We want to authenticate the user if not already authenticated so we can show the page as internal
+
+
+	global $external_share_view_as_internal;
+    	if($external_share_view_as_internal && isset($_COOKIE["user"]) && validate_user("u.session='" . escape_check($_COOKIE["user"]) . "'",false)) {return false;} 
 	
 	$keys=sql_query("select user,usergroup,expires from external_access_keys where resource='$resource' and access_key='$key' and (expires is null or expires>now())");
 
@@ -3518,7 +3520,7 @@ function check_access_key_collection($collection, $key)
         }
     
     global $external_share_view_as_internal;
-    if($external_share_view_as_internal && isset($_COOKIE["user"]))
+    if($external_share_view_as_internal && isset($_COOKIE["user"]) && validate_user("u.session='" . escape_check($_COOKIE["user"]) . "'",false))
         {
         // We want to authenticate the user so we can show the page as internal
         return false;
@@ -5581,3 +5583,5 @@ function user_set_usergroup($user,$usergroup)
     {
     sql_query("update user set usergroup='" . escape_check($usergroup) . "' where ref='" . escape_check($user) . "'");
     }
+
+
