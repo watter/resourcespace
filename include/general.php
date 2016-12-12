@@ -5724,5 +5724,7 @@ function strip_tags_and_attributes($html, array $tags = array(), array $attribut
             }
         }
 
+    $html = trim($html, "\r\n");
+
     return $html;
     }
