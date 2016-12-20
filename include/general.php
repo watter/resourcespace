@@ -5728,3 +5728,19 @@ function strip_tags_and_attributes($html, array $tags = array(), array $attribut
 
     return $html;
     }
+
+/**
+ * Generates a random string of requested length.
+ * 
+ * Used to generate initial spider and scramble keys.
+ * 
+ * @param  int    $length Optional, default=12
+ * @return string         Random character string.
+ */
+function generateSecureKey($length = 64)
+    {
+    $bytes = openssl_random_pseudo_bytes($length / 2);
+    $hex   = substr(bin2hex($bytes), 0, 64); 
+
+    return $hex;
+    }
