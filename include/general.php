@@ -1874,7 +1874,7 @@ function get_all_site_text($findpage="",$findname="",$findtext="")
 
         $i++;
         }
-    $return = $unique_returned_records;
+    $return = array_values($unique_returned_records);
 
     return $return;
 	}
