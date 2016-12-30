@@ -3310,9 +3310,9 @@ function check_display_condition($n, $field)
                         <script>
                         jQuery(document).ready(function()
                             {
-                            document.getElementById('CentralSpace').addEventListener('categoryTreeChanged', function(e)
+                            jQuery('#CentralSpace').on('categoryTreeChanged', function(e,node)
                                 {
-                                checkDisplayCondition<?php echo $field['ref']; ?>(e.detail.node);
+                                checkDisplayCondition<?php echo $field['ref']; ?>(node);
                                 });
                             });
                         </script>
@@ -3327,9 +3327,9 @@ function check_display_condition($n, $field)
                         <script>
                         jQuery(document).ready(function()
                             {
-                            document.getElementById('CentralSpace').addEventListener('dynamicKeywordChanged', function(e)
+                            jQuery('#CentralSpace').on('dynamicKeywordChanged', function(e,node)
                                 {
-                                checkDisplayCondition<?php echo $field['ref']; ?>(e.detail.node);
+                                checkDisplayCondition<?php echo $field['ref']; ?>(node);
                                 });
                             });
                         </script>
@@ -5744,3 +5744,31 @@ function generateSecureKey($length = 64)
 
     return $hex;
     }
+
+/**
+ * Validates the user entered antispam code
+ *  
+ * @param  string    			$spamcode The antispam hash to check against
+ * @param  string    			$usercode The antispam code the user entered
+ * @param  string    			$spamtime The antispam timestamp
+ * @return boolean         		Returnd tru if the code was successfully validated, otherwise false
+ */	
+function verify_antispam($spamcode="",$usercode="",$spamtime=0)
+	{
+	global $scramble_key,$password_brute_force_delay;
+	if($usercode=="" || $spamcode=="" || $spamtime==0){debug("antispam failed");return false;}
+	if($spamcode != hash("SHA256",strtoupper($usercode) . $scramble_key . $spamtime))
+		{
+		debug("antispam failed: invalid code entered. IP: " . get_ip());
+		sleep($password_brute_force_delay);
+		return false;
+		}
+	$prevhashes=sql_array("SELECT unique_hash value FROM user WHERE unique_hash IS NOT null","");
+	if(in_array(md5($usercode . $spamtime),$prevhashes))
+		{
+		debug("antispam failed: code has previously been used  IP: " . get_ip());
+		sleep($password_brute_force_delay);
+		return false;
+		}
+	return true;
+	}

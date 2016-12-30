@@ -120,7 +120,6 @@ for ($n=0;$n<count($keywords);$n++)
                     $quicksearch = str_replace(NODE_TOKEN_PREFIX . $searched_node, '', $quicksearch);
                     }
                 }
-
             $initial_tags = explode(',', $quicksearch);
             }
 		else
@@ -214,6 +213,7 @@ if ($display_user_rating_stars && $star_search){ ?>
                 {
                 'initialTags': <?php echo json_encode($initial_tags); ?>,
                 'delimiter': '<?php echo TAG_EDITOR_DELIMITER; ?>',
+                'forceLowercase': false,
                 'autocomplete': {
                     'source': '<?php echo $autocomplete_src; ?>',
                 },
