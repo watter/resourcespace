@@ -229,7 +229,14 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
                             }
                         else
                             {
-                            $fieldinfo=sql_query("select ref,type from resource_type_field where name='" . escape_check($fieldname) . "'",0);
+                            $fieldinfo = sql_query("SELECT ref, `type` FROM resource_type_field WHERE name = '" . escape_check($fieldname) . "'", 0);
+
+                            // Checking for date from Simple Search will result with a fieldname like 'year' which obviously does not exist
+                            if(0 === count($fieldinfo) && ('year' == $kw[0] || 'month' == $kw[0] || 'day' == $kw[0]))
+                                {
+                                $fieldinfo = sql_query("SELECT ref, `type` FROM resource_type_field WHERE ref = '{$date_field}'", 0);
+                                }
+
                             $fieldinfo_cache[$fieldname]=$fieldinfo[0];
                             }
                         }
@@ -290,7 +297,7 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
                             $sql_filter.="rd" . $c . ".value like '". $val . "%' ";
                             $sql_join.=" join resource_data rd" . $c . " on rd" . $c . ".resource=r.ref and rd" . $c . ".resource_type_field='" . $datefield . "'";
                             }
-                        elseif ($keystring=="day")
+                        else if('day' == $kw[0])
                             {
                             if ($sql_filter!="")
                                 {
@@ -298,7 +305,7 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
                                 }
                             $sql_filter.="r.field$date_field like '____-__-" . $keystring . "%' ";
                             }
-                        elseif ($keystring=="month")
+                        else if('month' == $kw[0])
                             {
                             if ($sql_filter!="")
                                 {
