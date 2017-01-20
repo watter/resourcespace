@@ -237,11 +237,12 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
                                 $fieldinfo = sql_query("SELECT ref, `type` FROM resource_type_field WHERE ref = '{$date_field}'", 0);
                                 }
 
-                            $fieldinfo_cache[$fieldname]=$fieldinfo[0];
+                            $fieldinfo=$fieldinfo[0];
+                            $fieldinfo_cache[$fieldname]=$fieldinfo;
                             }
                         }
 
-                    if ($field_short_name_specified && !$quoted_string && !$ignore_filters && isset($fieldinfo[0]['type']) && !in_array($fieldinfo[0]['type'],array(FIELD_TYPE_TEXT_BOX_SINGLE_LINE, FIELD_TYPE_TEXT_BOX_MULTI_LINE)) && !in_array($fieldinfo[0]['type'], $FIXED_LIST_FIELD_TYPES))
+                    if ($field_short_name_specified && !$quoted_string && !$ignore_filters && isset($fieldinfo['type']) && !in_array($fieldinfo['type'],array(FIELD_TYPE_TEXT_BOX_SINGLE_LINE, FIELD_TYPE_TEXT_BOX_MULTI_LINE)) && !in_array($fieldinfo['type'], $FIXED_LIST_FIELD_TYPES))
                         {
                         // ********************************************************************************
                         //                                                                    Field keyword
@@ -407,10 +408,10 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
                             }
                         }
                     // Convert legacy fixed list field search to new format for nodes (@@NodeID)
-                    else if($field_short_name_specified && !$ignore_filters && isset($fieldinfo[0]['type']) && in_array($fieldinfo[0]['type'], $FIXED_LIST_FIELD_TYPES))
+                    else if($field_short_name_specified && !$ignore_filters && isset($fieldinfo['type']) && in_array($fieldinfo['type'], $FIXED_LIST_FIELD_TYPES))
                         {
                         // We've searched using a legacy format (ie. fieldShortName:keyword), try and convert it to @@NodeID
-                        $field_nodes      = get_nodes($fieldinfo[0]['ref'], null, false, true);
+                        $field_nodes      = get_nodes($fieldinfo['ref'], null, false, true);
                         $field_node_index = array_search(mb_strtolower(i18n_get_translated($keystring)), array_map('mb_strtolower',array_column($field_nodes, 'name')));
      
                         // Take the ref of the node and put it in the node_bucket
@@ -681,11 +682,11 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
                 {
                 $quotedfieldid="";
 				// This keyword is a quoted string, split into keywords but don't preserve quotes this time
-                 if ($field_short_name_specified && isset($fieldinfo[0]['ref']))
+                 if ($field_short_name_specified && isset($fieldinfo['ref']))
                     {
                     // We have already parsed the keyword when looking for a node, get string and then filter on this field
                     $quotedkeywords=split_keywords($keystring);
-                    $quotedfieldid= $fieldinfo[0]['ref'];
+                    $quotedfieldid= $fieldinfo['ref'];
                     } 
                 else
                     {
