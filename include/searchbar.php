@@ -66,7 +66,6 @@ for ($n=0;$n<count($fields);$n++)
 			
 # Process all keywords, putting set fieldname/value pairs into an associative array ready for setting later.
 # Also build a quicksearch string.
-
 $quicksearch    = refine_searchstring($quicksearch);
 $keywords       = split_keywords($quicksearch,false,false,false,false,true);
 
@@ -110,10 +109,9 @@ for ($n=0;$n<count($keywords);$n++)
 
                 if(false === $field_index)
                     {
-                    $fieldsearchterm = str_replace(NODE_TOKEN_PREFIX . $searched_node,
-                        rebuild_specific_field_search_from_node($node),
-                        $keywords[$n]);
-						
+                    $fieldsearchterm = rebuild_specific_field_search_from_node($node);
+					if(strpos(" ",$fieldsearchterm)!==false)
+						{ $fieldsearchterm = "\"" . $fieldsearchterm . "\"";}	
 					$simple[]=$fieldsearchterm;
 					$initial_tags[] = $fieldsearchterm;
                     continue;
@@ -433,7 +431,7 @@ elseif($restypes=='')
             $searchbuttons .= " document.getElementById('searchresourceid').value='';";
             }
 
-        $searchbuttons .= "ResetTicks();\"/>";
+        $searchbuttons .= "ResetTicks();HideInapplicableSimpleSearchFields();\"/>";
         }
     else
         {
@@ -576,15 +574,15 @@ elseif($restypes=='')
 					<?php
 					switch($fields[$n]['type'])
 						{
-						case '7':
+						case FIELD_TYPE_CATEGORY_TREE:
 							?>
 							document.getElementById('<?php echo htmlspecialchars($fields[$n]["name"]) ?>_category').value='';
 							document.getElementById('<?php echo htmlspecialchars($fields[$n]["name"]) ?>_statusbox').innerHTML='<?php echo $lang["nocategoriesselected"]?>';
 							<?php
 							break;
-						case '4':
-						case '6':
-						case '10':
+						case FIELD_TYPE_DATE_AND_OPTIONAL_TIME:
+						case FIELD_TYPE_EXPIRY_DATE:
+						case FIELD_TYPE_DATE:
 							?>
 							document.getElementById('field_<?php echo htmlspecialchars($fields[$n]["ref"]) ?>_year').value='';
 							document.getElementById('field_<?php echo htmlspecialchars($fields[$n]["ref"]) ?>_month').value='';
@@ -596,6 +594,13 @@ elseif($restypes=='')
 								<?php
 								}
 							break;
+                        case FIELD_TYPE_CHECK_BOX_LIST: 
+                        case FIELD_TYPE_DROP_DOWN_LIST:
+                        case FIELD_TYPE_RADIO_BUTTONS:
+                            ?>
+                            jQuery('select[name="nodes_searched[<?php echo $fields[$n]["ref"]; ?>]"]').val('');
+                            <?php                            
+                            break;  
 						default:
 							if ($fields[$n]['field_constraint']==1){?>
 							document.getElementById('field_<?php echo htmlspecialchars($fields[$n]["name"]) ?>').value='';	
@@ -613,9 +618,9 @@ elseif($restypes=='')
 					<?php
 					switch($fields[$n]['type'])
 						{
-						case '4':
-						case '6':
-						case '10':
+						case FIELD_TYPE_DATE_AND_OPTIONAL_TIME:
+						case FIELD_TYPE_EXPIRY_DATE:
+						case FIELD_TYPE_DATE:
 							?>
 							document.getElementById('field_<?php echo htmlspecialchars($fields[$n]["ref"]) ?>_year').value='';
 							document.getElementById('field_<?php echo htmlspecialchars($fields[$n]["ref"]) ?>_month').value='';
@@ -627,11 +632,18 @@ elseif($restypes=='')
 								<?php
 								}
 							break;
-						case '7':
+						case FIELD_TYPE_CATEGORY_TREE:
 							?>
 							document.getElementById('field_<?php echo htmlspecialchars($fields[$n]["name"]) ?>').value='';
 							<?php
 							break;
+                        case FIELD_TYPE_CHECK_BOX_LIST: 
+                        case FIELD_TYPE_DROP_DOWN_LIST:
+                        case FIELD_TYPE_RADIO_BUTTONS:
+                            ?>
+                            jQuery('select[name="nodes_searched[<?php echo $fields[$n]["ref"]; ?>]"]').val('');
+                            <?php                            
+                            break;  
 						default:
 							if ($fields[$n]['field_constraint']==1){?>
 							document.getElementById('field_<?php echo htmlspecialchars($fields[$n]["name"]) ?>').value='';	

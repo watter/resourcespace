@@ -2549,3 +2549,4 @@ $lang['linkedheaderimgsrc']="Location of the logo image in the header (Defaults 
 $lang['responsive_result_settings'] = 'Result Settings';
 $lang['responsive_view_full_site'] = 'View full site';
 // end of Responsive
+$lang["field_search_no_results"] = "Try without specifying a metadata field, or";
