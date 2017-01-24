@@ -238,13 +238,13 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
 								{
 								return;
 								}
-                            $fieldinfo=$fieldinfo[0];
+							$fieldinfo=$fieldinfo[0];
                             $fieldinfo_cache[$fieldname]=$fieldinfo;
                             }
                         }
 						
 					//First try and process special keyword types
-                    if ($field_short_name_specified && !$quoted_string && !$ignore_filters && isset($fieldinfo[0]['type']) && in_array($fieldinfo[0]['type'],$DATE_FIELD_TYPES))
+                    if ($field_short_name_specified && !$quoted_string && !$ignore_filters && isset($fieldinfo['type']) && in_array($fieldinfo['type'],$DATE_FIELD_TYPES))
                         {
                         // ********************************************************************************
                         // Date field keyword
@@ -346,7 +346,7 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
                             }
 						$keywordprocessed=true;
                         }
-                    elseif ($field_short_name_specified && substr($keystring,0,8)=="numrange" && !$quoted_string && !$ignore_filters && isset($fieldinfo[0]['type']) && $fieldinfo[0]['type']==0)
+                    elseif ($field_short_name_specified && substr($keystring,0,8)=="numrange" && !$quoted_string && !$ignore_filters && isset($fieldinfo['type']) && $fieldinfo['type']==0)
                         {
                         // Text field numrange search ie mynumberfield:numrange1|1234 indicates that mynumberfield needs a numrange search for 1 to 1234. 
 						$c++;
@@ -393,7 +393,7 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
                      if($field_short_name_specified) // Need this also for string matching in a named text field
                             {
                             $keyword=$keystring;
-                            $search_field_restrict=$fieldinfo[0]['ref'];
+                            $search_field_restrict=$fieldinfo['ref'];
                             }
 							
                     
