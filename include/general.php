@@ -1,8 +1,8 @@
 <?php
 # General functions, useful across the whole solution
-
-include_once ("language_functions.php");
-include_once "message_functions.php";
+include_once 'definitions.php';
+include_once 'language_functions.php';
+include_once 'message_functions.php';
 include_once 'node_functions.php';
 
 $GLOBALS['get_resource_path_fpcache'] = array();
@@ -1760,7 +1760,7 @@ function get_all_site_text($findpage="",$findname="",$findtext="")
 
         $i++;
         }
-    $return = $unique_returned_records;
+    $return = array_values($unique_returned_records);
 
     return $return;
 	}
@@ -2603,7 +2603,7 @@ function rs_quoted_printable_encode_subject($string, $encoding='UTF-8')
 	}
 
 if (!function_exists("highlightkeywords")){
-function highlightkeywords($text,$search,$partial_index=false,$field_name="",$keywords_index=1)
+function highlightkeywords($text,$search,$partial_index=false,$field_name="",$keywords_index=1, $str_highlight_options = STR_HIGHLIGHT_SIMPLE)
 	{
 	# do not highlight if the field is not indexed, so it is clearer where results came from.	
 	if ($keywords_index!=1){return $text;}
@@ -2645,7 +2645,7 @@ function highlightkeywords($text,$search,$partial_index=false,$field_name="",$ke
              }
         
 	# Parse and replace.
-	return str_highlight ($text,$hlkeycache,STR_HIGHLIGHT_SIMPLE);
+	return str_highlight($text, $hlkeycache, $str_highlight_options);
 	}
 }
 # These lines go with str_highlight (next).
