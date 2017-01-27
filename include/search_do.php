@@ -890,17 +890,6 @@ function do_search($search,$restypes="",$order_by="relevance",$archive=0,$fetchr
 				}
             # Find keyword(s)
             $ks=explode("|",strtolower(escape_check($s[1])));
-            for($x=0;$x<count($ks);$x++)
-                {
-                # Cleanse the string as keywords are stored without special characters
-                $ks[$x]=cleanse_string($ks[$x],true);
-
-                global $stemming;
-                if ($stemming && function_exists("GetStem")) // Stemming enabled. Highlight any words matching the stem.
-                    {
-                    $ks[$x]=GetStem($ks[$x]);
-                    }
-                }
 
             $modifiedsearchfilter=hook("modifysearchfilter");
             if ($modifiedsearchfilter)
