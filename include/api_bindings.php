@@ -17,7 +17,14 @@ function api_do_search($search,$restypes="",$order_by="relevance",$archive=0,$fe
    # Note the subset of the available parameters. We definitely don't want to allow override of permissions or filters.
    return do_search($search,$restypes,$order_by,$archive,$fetchrows,$sort);
    }
-
+   
+function api_search_get_previews($search,$restypes="",$order_by="relevance",$archive=0,$fetchrows=-1,$sort="desc",$recent_search_daylimit="",$getsizes="",$previewext="jpg")
+   {
+   # Extension to search capability that also returns the URLs of preview file sizes requested using the $getsizes parameter that match the requested extension.
+   $getsizes=explode(",",$getsizes);
+   return search_get_previews($search,$restypes,$order_by,$archive,$fetchrows,$sort,false,0,false,false,$recent_search_daylimit,false,false,false,false,false,$getsizes,$previewext);
+   }
+  
 function api_get_resource_field_data($resource)
    {
    # Get all field data for a resource
@@ -26,10 +33,6 @@ function api_get_resource_field_data($resource)
 
 function api_create_resource($resource_type,$archive=999)
     {
-    $no_exif    = filter_var($no_exif, FILTER_VALIDATE_BOOLEAN);
-    $revert     = filter_var($revert, FILTER_VALIDATE_BOOLEAN);
-    $autorotate = filter_var($autorotate, FILTER_VALIDATE_BOOLEAN);
-
     # Create a new resource
     return create_resource($resource_type,$archive);
     }

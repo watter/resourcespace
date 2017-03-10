@@ -431,6 +431,29 @@ function render_search_field($field,$value="",$autoupdate,$class="stdwidth",$for
                     if(!hook('rendersearchchkboxes'))
                         {
                         # ---------------- Vertical Ordering (only if configured) -----------
+
+                        ##### Vertical shuffling #####
+                        $reshuffled_nodes    = array();
+
+                        for($i = 0; $i < $height; $i++)
+                            {
+                            for($j = 0; $j < $cols; $j++)
+                                {
+                                $order_by = ($height * $j) + $i;
+
+                                $node_index_to_be_reshuffled = array_search($order_by, array_column($field['nodes'], 'order_by', 'ref'));
+
+                                if(false === $node_index_to_be_reshuffled)
+                                    {
+                                    continue;
+                                    }
+
+                                $reshuffled_nodes[$field['nodes'][$node_index_to_be_reshuffled]['ref']] = $field['nodes'][$node_index_to_be_reshuffled];
+                                }
+                            }
+
+                        $field['nodes'] = $reshuffled_nodes;
+                        ##### End of vertical shuffling #####
                         ?>
                         <table cellpadding=2 cellspacing=0>
                             <tbody>
