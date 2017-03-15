@@ -1316,11 +1316,11 @@ function remove_keyword_from_resource($ref,$keyword,$resource_type_field,$option
         if($keyword!=$kworig && $unnormalized_index)
 			{
 			// $keyword has been changed by normalizing, also remove the original value
-			remove_keyword_from_resource($ref,$keyword,$resource_type_field,$optional_column='',$optional_value='',true);
+			remove_keyword_from_resource($ref,$kworig,$resource_type_field,$optional_column='',$optional_value='',true);
 			}
         }		
 	
-        $keyref=resolve_keyword($keyword,true);
+        $keyref=resolve_keyword($keyword,true, false);
 	if ($optional_column<>'' && $optional_value<>'')	# Check if any optional column value passed and include this condition
 		{
 		sql_query("delete from resource_keyword where resource='$ref' and keyword='$keyref' and resource_type_field='$resource_type_field'" . (($position!="")?" and position='" . $position ."'":"") . " and $optional_column= $optional_value");
@@ -1348,7 +1348,6 @@ function add_keyword_mappings($ref,$string,$resource_type_field,$partial_index=f
         }
 
     $keywords = split_keywords($string, true, $partial_index, $is_date, $is_html);
-
     add_verbatim_keywords($keywords, $string, $resource_type_field); // add in any verbatim keywords (found using regex).
 
     for($n = 0; $n < count($keywords); $n++)
@@ -1385,11 +1384,11 @@ function add_keyword_to_resource($ref,$keyword,$resource_type_field,$position,$o
                     add_keyword_to_resource($ref,$kworig,$resource_type_field,$position,$optional_column,$optional_value,true);
                     }
         }
+	
     global $noadd,$use_mysqli_prepared;
     if (!(in_array($keyword,$noadd)))
             {           
-            debug("adding " . $keyword);
-            $keyref=resolve_keyword($keyword,true);			
+            $keyref=resolve_keyword($keyword,true,false); // 3rd param set to false as already normalized	
             
             # create mapping, increase hit count.
             if ($optional_column<>'' && $optional_value<>'')	# Check if any optional column value passed and add this
@@ -4251,14 +4250,39 @@ function resource_type_config_override($resource_type)
         }
     }
 
-function update_archive_status($resource,$archive)
+/**
+* Update the archive state of resource(s) and log this
+* 
+* @param integer|array $resource_id - Resource unique ref -or- array of Resource refs
+* @param integer $archive - Destination archive state
+* @param integer|array $existingstates -  existing archive state _or_ array of corresponding existing archive states
+* 
+* @return void
+*/
+function update_archive_status($resource,$archive,$existingstates=array())
     {
-    sql_query("update resource set archive='" . escape_check($archive) .  "' where ref='" . escape_check($resource) . "'");  
+    global $userref;
+    
+    if(!is_array($resource))
+        {
+        $resource=array($resource);
+        $existingstates=array($existingstates);
+        }
+            
+    $count=count($resource);
+    for($n=0;$n<$count;$n++)
+        {
+        if(!is_numeric($resource[$n])){continue;}
+        resource_log($resource[$n],"s",0,"",isset($existingstates[$n])?$existingstates[$n]:'',$archive);    
+        }
+    sql_query("update resource set archive='" . escape_check($archive) .  "' where ref in ('" . implode("','",$resource) . "')");
+    
+    return;
     }
-
+        
 function delete_resources_in_collection($collection) {
 
-	global $resource_deletion_state;
+	global $resource_deletion_state,$userref,$lang;
 
 	// Always find all resources in deleted state and delete them permanently:
 	// Note: when resource_deletion_state is null it will find all resources in collection and delete them permanently
@@ -4281,10 +4305,12 @@ function delete_resources_in_collection($collection) {
 		}
 		collection_log($collection,'D', '', 'Resource ' . $resource_in_deleted_state . ' deleted permanently.');
 	}
+    
 
 	// Create a comma separated list of all resources remaining in this collection:
-	$resources = sql_array("SELECT resource AS value FROM collection_resource WHERE collection = '" . $collection . "';");
-	$resources = implode(',', $resources);
+	$resources = sql_query("SELECT cr.resource, r.archive FROM collection_resource cr LEFT JOIN resource r on r.ref=cr.resource WHERE cr.collection = '" . $collection . "';");
+	$r_refs = array_column($resources,"resource");
+    $r_states = array_column($resources,"archive");
 	
 	// If all resources had their state the same as resource_deletion_state, stop here:
 	// Note: when resource_deletion_state is null it will always stop here
@@ -4293,28 +4319,12 @@ function delete_resources_in_collection($collection) {
 	}
 
 	// Delete (ie. move to resource_deletion_state set in config):
-	if(isset($resource_deletion_state)) {
-		$query = sprintf("
-				    UPDATE resource
-				INNER JOIN collection_resource ON collection_resource.resource = resource.ref AND collection_resource.collection = '%s'
-				       SET archive = '%s';
-		",
-			$collection,
-			$resource_deletion_state
-		);
-		sql_query($query);
-
-		collection_log($collection,'D', '', 'All resources of this collection have been deleted by moving them to state ' . $resource_deletion_state);
-
-		$query = sprintf("
-				DELETE FROM collection_resource 
-				      WHERE resource IN (%s);
-		",
-			$resources
-		);
-		sql_query($query);
-
-	}
+	if(isset($resource_deletion_state))
+        {
+		update_archive_status($r_refs,$resource_deletion_state,$r_states);
+		collection_log($collection,'D', '', str_replace("%ARCHIVE",$resource_deletion_state,$lang['log-deleted_all']));
+		sql_query("DELETE FROM collection_resource  WHERE resource IN ('" . implode("','",$r_refs) . "')");
+        }
 
 	return TRUE;
 	}
