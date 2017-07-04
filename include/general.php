@@ -5155,11 +5155,12 @@ function generateURL($url,$parameters=array(),$setparams=array())
         {
         $querystringparams[]= $parameter . "=" . urlencode($parametervalue);
         }
-    $querystring="?" . implode ("&", $querystringparams);
+
+    # Ability to hook in and change the URL.
+    $hookurl=hook("generateurl","",array($url));
+    if ($hookurl!==false) {$url=$hookurl;}
     
-    $returnurl= $url . $querystring;
-    return $returnurl;
-     
+    return $url . '?' . implode ('&', $querystringparams);
     }
 
 function notify_resource_change($resource)
