@@ -4445,17 +4445,21 @@ function get_video_snapshots($resource_id, $file_path = false, $count_only = fal
     global $storagedir, $storageurl;
 
     $snapshots_found = array();
-    $path            = get_resource_path($resource_id, true, 'snapshot', false, 'jpg', -1, 1, false, '');
+ 
+    $template_path            = get_resource_path($resource_id, true,  'snapshot', false, 'jpg', -1, 1, false, '');
+    $template_webpath         = get_resource_path($resource_id, false, 'snapshot', false, 'jpg', -1, 1, false, '');
 
     $i = 1;
     do
         {
-        $snapshot_path  = str_replace('snapshot', "snapshot_{$i}", $path);
-        $snapshot_found = file_exists($snapshot_path);
+	$path=str_replace("snapshot","snapshot_" . $i,$template_path);
+	$webpath=str_replace("snapshot","snapshot_" . $i,$template_webpath);
+
+        $snapshot_found  = file_exists($path);
 
         if($snapshot_found)
             {
-            $snapshots_found[$i] = ($file_path ? $snapshot_path : str_replace($storagedir, $storageurl, $snapshot_path));
+            $snapshots_found[$i] = ($file_path ? $path : $webpath);
             }
 
         $i++;
