@@ -165,8 +165,16 @@ include "../../include/header.php";
     $page_def[] = config_add_single_select('thumbs_default', $lang['userpreference_thumbs_default_label'], array('show' => $lang['showthumbnails'], 'hide' => $lang['hidethumbnails']), true, 300, '', true);
     $page_def[] = config_add_boolean_select('basic_simple_search', $lang['userpreference_basic_simple_search_label'], $enable_disable_options, 300, '', true);
 	$page_def[] = config_add_single_select('upload_then_edit', $lang['upload_sequence'], array(true => $lang['upload_first_then_set_metadata'], false => $lang['set_metadata_then_upload']), true, 300, '', true);
+	
+	$page_def[] = config_add_boolean_select('byte_prefix_mode_decimal', $lang['byte_prefix_mode_decimal'], $enable_disable_options, 300, '', true);
+	
+	
     $page_def[] = config_add_html('</div>');
 
+	
+	
+	
+	
 
     // Email section, only show if user has got an email address
 	if ($useremail!="")
