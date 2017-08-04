@@ -3984,12 +3984,13 @@ function get_total_disk_usage()
 function overquota()
 	{
 	# Return true if the system is over quota
-	global $disksize;
+	global $disksize,$byte_prefix_mode_decimal;
 	if (isset($disksize))
 		{
 		# Disk quota functionality. Calculate the usage by the $storagedir folder only rather than the whole disk.
 		# Unix only due to reliance on 'du' command
-		$avail=$disksize*(1024*1024*1024);
+		
+		$avail=$disksize*($byte_prefix_mode_decimal?1000 * 1000 * 1000:1024 * 1024 * 1024);
 		$used=get_total_disk_usage();
 		
 		$free=$avail-$used;
