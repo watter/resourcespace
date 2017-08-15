@@ -204,7 +204,7 @@
     #HeaderNav1 {
         display:none;
         margin:0;
-        height: auto;
+        height: auto !important;
         float: none;
         clear: both;
         text-align: right;
@@ -212,7 +212,7 @@
     #HeaderNav2 {
         display:none;
         margin:0;
-        height: auto;
+        height: auto !important;
         float: none;
         width: 100%;
         clear: both;
