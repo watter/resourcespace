@@ -894,7 +894,7 @@ $user_purge=true;
 # List of active plugins.
 # Note that multiple plugins must be specified within array() as follows:
 # $plugins=array("loader","rss","messaging","googledisplay"); 
-$plugins = array('transform', 'rse_version', 'lightbox_preview');
+$plugins = array('transform', 'rse_version');
 
 # Uncomment and set the next line to allow anonymous access. 
 # You must set this to the USERNAME of the USER who will represent all your anonymous users
