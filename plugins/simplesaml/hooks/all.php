@@ -10,7 +10,7 @@ function HookSimplesamlAllPreheaderoutput()
         return false;
         }
         
-	global $simplesaml_site_block, $simplesaml_allow_public_shares, $simplesaml_allowedpaths;
+	global $simplesaml_site_block, $simplesaml_allow_public_shares, $simplesaml_allowedpaths, $simplesaml_login;
     
 	if(simplesaml_is_authenticated())
 		{
@@ -19,10 +19,17 @@ function HookSimplesamlAllPreheaderoutput()
 		$delete_requires_password=false;
 		return true;
 		}
-
+    
+     // Prevent password change if SAML authenticated and signed in to RS with SAML
+    if ($simplesaml_login && simplesaml_is_authenticated())
+        {
+        global $allow_password_change;
+        $allow_password_change=false;
+        }
+        
 	// If authenticated do nothing and return
 	if (isset($_COOKIE["user"])) {return true;}
-
+    
 	// If not blocking site do nothing and return
 	if (!$simplesaml_site_block){return true;}
 
@@ -74,8 +81,27 @@ function HookSimplesamlAllProvideusercredentials()
 		global $pagename, $simplesaml_allow_standard_login, $simplesaml_prefer_standard_login, $baseurl, $path, $default_res_types, $scramble_key,
         $simplesaml_username_suffix, $simplesaml_username_attribute, $simplesaml_fullname_attribute, $simplesaml_email_attribute, $simplesaml_group_attribute,
         $simplesaml_fallback_group, $simplesaml_groupmap, $user_select_sql, $session_hash,$simplesaml_fullname_separator,$simplesaml_username_separator,
-        $simplesaml_custom_attributes,$lang,$simplesaml_login, $simplesaml_site_block;
-		
+        $simplesaml_custom_attributes,$lang,$simplesaml_login, $simplesaml_site_block, $anonymous_login;
+
+        // Allow anonymous logins outside SSO if simplesaml is not configured to block access to site.
+        // NOTE: if anonymous_login is set to an invalid user, then use SSO otherwise it goes in an indefinite loop
+        if(!$simplesaml_site_block && isset($anonymous_login) && trim($anonymous_login) !== '' && getval("usesso","")=="")
+            {
+            $anonymous_login_escaped = escape_check($anonymous_login);
+            $anonymous_login_found   = sql_value("SELECT username AS `value` FROM user WHERE username = '{$anonymous_login_escaped}'", '');
+
+            // If anonymous_login is not set to a real username then use SSO to authenticate
+            if($anonymous_login_found == '')
+                {
+                simplesaml_authenticate();
+                }
+
+            if(!simplesaml_is_authenticated())
+                {
+                return true;
+                }
+            }
+
         // If user is logged or if SAML is not being used to login to ResourceSpace (just as a simple barrier, 
         // usually with anonymous access configured) then use standard authentication if available
         if($simplesaml_site_block && !simplesaml_is_authenticated())
@@ -262,7 +288,7 @@ function HookSimplesamlLoginLoginformlink()
 		if(!$simplesaml_login) {return false;}
 		
         ?>
-		<br/><a href="<?php echo $baseurl . "/?usesso=true\">&gt; " . $lang["simplesaml_use_sso"];?></a>
+		<br/><a href="<?php echo $baseurl; ?>/?usesso=true"><?php echo '&gt; ' . $lang['simplesaml_use_sso']; ?></a>
 		<?php
         }
 
@@ -287,17 +313,49 @@ function HookSimplesamlLoginPostlogout2()
         }
 
 
-
 function HookSimplesamlAllCheckuserloggedin()
-	{
-	return simplesaml_is_authenticated();
-	}
+    {
+    return simplesaml_is_authenticated();
+    }
 
 
+/**
+* Render header navigation links in anonymous mode based on simplasaml configuration
+* 
+* 
+*/
+function HookSimplesamlAllReplaceheadernav1anon()
+    {
+    global $baseurl, $lang, $anon_login_modal, $contact_link, $simplesaml_prefer_standard_login;
 
+    if($simplesaml_prefer_standard_login)
+        {
+        return false;
+        }
 
+    $onClick = '';
 
-	
-	
+    if($anon_login_modal)
+        {
+        $onClick = 'onClick="return ModalLoad(this, true);"';
+        }
+        ?>
+    <ul>
+        <li>
+            <a href="<?php echo $baseurl; ?>/?usesso=true"<?php echo $onClick; ?>><?php echo $lang['login']; ?></a>
+        </li>
+    <?php
+    if($contact_link)
+        {
+        ?>
+        <li>
+            <a href="<?php echo $baseurl?>/pages/contact.php" onClick="return CentralSpaceLoad(this, true);"><?php echo $lang['contactus']; ?></a>
+        </li>
+        <?php
+        }
+        ?>
+    </ul>
+    <?php
 
-
+    return true;
+    }

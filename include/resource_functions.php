@@ -464,8 +464,37 @@ function save_resource_data($ref,$multi,$autosave_field="")
 					}
 				
 				} // End of if not a fixed list (node) field
-			
-			if (!(in_array($fields[$n]['type'], $FIXED_LIST_FIELD_TYPES)) && str_replace("\r\n","\n",$fields[$n]["value"])!== str_replace("\r\n","\n",unescape($val)))
+
+            // Check required fields have been entered.
+            $exemptfields = getvalescaped('exemptfields', '');
+            $exemptfields = explode(',', $exemptfields);
+            if(
+                $fields[$n]['required'] == 1
+                // Not exempt
+                && !in_array($fields[$n]['ref'], $exemptfields)
+                && (
+                    // No nodes submitted
+                    (in_array($fields[$n]['type'], $FIXED_LIST_FIELD_TYPES) && count($ui_selected_node_values) == 0)
+                    // No value submitted
+                    || (!in_array($fields[$n]['type'], $FIXED_LIST_FIELD_TYPES) && strip_leading_comma($val) == '')
+                )
+                && (
+                    // Existing resource, but not in upload review mode with blank template and existing value (e.g. for resource default)
+                    ($ref > 0 && !($upload_review_mode && $blank_edit_template && $fields[$n]['value'] != ''))
+                    // Template with blank template and existing value
+                    || ($ref < 0 && !($blank_edit_template && $fields[$n]["value"] !== ''))
+                )
+            )
+                {
+                $errors[$fields[$n]['ref']] = i18n_get_translated($fields[$n]['title']) . ": {$lang['requiredfield']}";
+                continue;
+                }
+
+            // If all good so far, then save the data
+			if(
+                !in_array($fields[$n]['type'], $FIXED_LIST_FIELD_TYPES)
+                && str_replace("\r\n", "\n", $fields[$n]['value']) !== str_replace("\r\n", "\n", unescape($val))
+            )
 				{
 				$oldval=$fields[$n]["value"];
 
@@ -526,32 +555,13 @@ function save_resource_data($ref,$multi,$autosave_field="")
 					eval($fields[$n]["onchange_macro"]);    
 					}				
 				}
-			    
-			# Check required fields have been entered.
-			$exemptfields = getvalescaped("exemptfields","");
-			$exemptfields = explode(",",$exemptfields);
-			if ($fields[$n]["required"] == 1
-                &&
-                    !in_array($fields[$n]["ref"],$exemptfields) // Not exempt
-                &&
-                    (
-                    (in_array($fields[$n]['type'], $FIXED_LIST_FIELD_TYPES) && count($ui_selected_node_values) == 0) // No nodes submitted
-                    ||
-                    (!in_array($fields[$n]['type'], $FIXED_LIST_FIELD_TYPES) && '' == strip_leading_comma($val)) // No value submitted
-                    )
-                &&
-                    (
-                    ($ref > 0 && !($upload_review_mode && $blank_edit_template && $fields[$n]["value"] != "")) // Existing resource, but not in upload review mode with blank template and existing value (e.g. for resource default)
-                     ||
-                     ($ref < 0 && !($blank_edit_template && $fields[$n]["value"] !== "")) // Template with blank template and existing value
-                    )
-                )
-				{
-				global $lang;
-				$errors[$fields[$n]["ref"]]=i18n_get_translated($fields[$n]["title"]).": ".$lang["requiredfield"];
-				}
 			}
-		}	   
+		}
+
+    if(count($errors) > 0)
+        {
+        return $errors;
+        }
         
         if ($autosave_field=="")
             {
@@ -652,7 +662,7 @@ function save_resource_data($ref,$multi,$autosave_field="")
                 # Clear any outstanding notifications relating to submission of this resource
                 message_remove_related(SUBMITTED_RESOURCE,$ref);
                 
-                // Notify the resources team ($email_notify) if moving from pending submission -> review.
+                // Send notifications if moving from pending submission -> review.
                 if ($oldarchive==-2 && $setarchivestate==-1 && $ref>0)
                         {	
                         notify_user_contributed_submitted(array($ref));
@@ -1324,15 +1334,15 @@ function save_resource_data_multi($collection)
 				notify_user_resources_approved($notifyrefs);			
 				}
 			
-			if ($oldarchive==-2 && $setarchivestate==-1) # Notify the resources team ($email_notify) if moving from pending submission->pending review
+			if ($oldarchive==-2 && $setarchivestate==-1) # Send notifications if moving from pending submission->pending review
 				{
-				debug("Emailing notification of submitted resources to " . $email_notify);
+				debug("Sending notifications of submitted resources");
 				notify_user_contributed_submitted($notifyrefs, $collection);
 				}
 			
-			if ($oldarchive==-1 && $setarchivestate==-2) # Notify the admin users of any submitted resources.
+			if ($oldarchive==-1 && $setarchivestate==-2) # Send notifications for unsubmitted resources.
 				{
-				debug("Emailing notification of unsubmitted resources to " . $email_notify);
+				debug("Sending notification of unsubmitted resources");
 				notify_user_contributed_unsubmitted($notifyrefs, $collection);
 				}	
 			}	
@@ -2980,7 +2990,7 @@ function process_notify_user_contributed_submitted($ref,$htmlbreak)
 
 function notify_user_contributed_submitted($refs,$collection=0)
 	{
-	// Send a notification mail to the administrators when resources are moved from "User Contributed - Pending Submission" to "User Contributed - Pending Review"
+	// Send notifications when resources are moved from "User Contributed - Pending Submission" to "User Contributed - Pending Review"
 	global $notify_user_contributed_submitted,$applicationname,$email_notify,$baseurl,$lang,$use_phpmailer;
 	if (!$notify_user_contributed_submitted) {return false;} # Only if configured.
 	$htmlbreak="\r\n";
@@ -3038,8 +3048,7 @@ function notify_user_contributed_submitted($refs,$collection=0)
 	}
 function notify_user_contributed_unsubmitted($refs,$collection=0)
 	{
-	// Send a notification mail to the administrators when resources are moved from "User Contributed - Pending Submission" to "User Contributed - Pending Review"
-	
+	// Send notifications when resources are moved from "User Contributed - Pending Submission" to "User Contributed - Pending Review"	
 	global $notify_user_contributed_unsubmitted,$applicationname,$email_notify,$baseurl,$lang,$use_phpmailer;
 	if (!$notify_user_contributed_unsubmitted) {return false;} # Only if configured.
 	
