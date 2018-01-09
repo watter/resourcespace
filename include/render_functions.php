@@ -2230,3 +2230,18 @@ function renderLockButton($name, $locked_fields=array())
     </button>
     <?php    
     }
+
+
+/**
+* Render the CSRF Token input tag
+* 
+* @return void
+*/
+function renderCSRFToken()
+    {
+    global $user_csrf_token;
+    ?>
+    <input type="hidden" name="CSRFToken" value="<?php echo $user_csrf_token; ?>">
+    <?php
+    return;
+    }
