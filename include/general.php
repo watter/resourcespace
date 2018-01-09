@@ -6577,10 +6577,11 @@ function generateCSRFToken($session)
 * 
 * @return void
 */
-/*function renderCSRFToken()
+function renderCSRFToken()
     {
+    global $user_csrf_token;
     ?>
-    <input type="hidden" name="CSRFToken" value="<?php echo getCSRFToken(); ?>">
-    <?
+    <input type="hidden" name="CSRFToken" value="<?php echo $user_csrf_token; ?>">
+    <?php
     return;
-    }*/
+    }
