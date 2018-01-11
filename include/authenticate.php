@@ -356,6 +356,6 @@ if(true == getvalescaped('ui_view_full_site', false))
 
 if($user_csrf_token != getval("CSRFToken", "") && !isset($anonymous_login))
     {
-    debug_log("WARNING: CSRF verification failed!");
+    debug("WARNING: CSRF verification failed!");
     trigger_error("CSRF verification failed! Try reloading {$baseurl}");
     }
