@@ -85,6 +85,8 @@ if (array_key_exists("user",$_COOKIE) || array_key_exists("user",$_GET) || isset
         $valid = true;
         setup_user($userdata[0]);
 
+        setCSRFTokenCookie($user_csrf_token);
+
         if ($password_expiry>0 && !checkperm("p") && $allow_password_change && $pagename!="user_change_password" && $pagename!="index" && $pagename!="collections" && strlen(trim($userdata[0]["password_last_change"]))>0 && getval("modal","")=="")
         	{
         	# Redirect the user to the password change page if their password has expired.

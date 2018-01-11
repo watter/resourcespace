@@ -91,6 +91,8 @@ elseif (array_key_exists("username",$_POST) && getval("langupdate","")=="")
 		# Set user cookie, setting secure only flag if a HTTPS site, and also setting the HTTPOnly flag so this cookie cannot be probed by scripts (mitigating potential XSS vuln.)	
 		rs_setcookie("user", $result['session_hash'], $expires, "", "", substr($baseurl,0,5)=="https", true);
 
+        setCSRFTokenCookie($result["csrf_token"]);
+
         # Set default resource types
         rs_setcookie('restypes', $default_res_types);
 
@@ -141,10 +143,11 @@ if ((getval("logout","")!="") && array_key_exists("user",$_COOKIE))
     {
     #fetch username and update logged in status
     $session=escape_check($_COOKIE["user"]);
-    sql_query("update user set logged_in=0,session='' where session='$session'");
+    sql_query("UPDATE user SET logged_in = 0, session = NULL, csrf_token = NULL WHERE session = '{$session}'");
     hook("removeuseridcookie");
     #blank cookie
     rs_setcookie('user', '', 0);
+    unsetCSRFTokenCookie();
 
     # Also blank search related cookies
     rs_setcookie('search', '');

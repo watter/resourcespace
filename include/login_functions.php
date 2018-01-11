@@ -81,7 +81,8 @@ function perform_login()
 		$session_hash_sql="session='".escape_check($session_hash)."',";
 
         // Generate a CSRF Token
-        $csrf_token = escape_check(generateCSRFToken($session_hash));
+        $result["csrf_token"] = generateCSRFToken($session_hash);
+        $csrf_token           = escape_check($result["csrf_token"]);
 
         $language = getvalescaped("language", "");
 
