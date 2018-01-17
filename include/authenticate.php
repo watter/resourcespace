@@ -354,8 +354,9 @@ if(true == getvalescaped('ui_view_full_site', false))
     $responsive_ui = false;
     }
 
-if($user_csrf_token != getval("CSRFToken", "") && !isset($anonymous_login))
+
+/*if($user_csrf_token != getval("CSRFToken", "") && !isset($anonymous_login))
     {
     debug("WARNING: CSRF verification failed!");
     trigger_error("CSRF verification failed! Try reloading {$baseurl}");
-    }
+    }*/
