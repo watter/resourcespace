@@ -1975,7 +1975,7 @@ function setup_user($userdata)
            $anonymous_user_session_collection, $global_permissions_mask, $user_preferences, $userrequestmode,
            $usersearchfilter, $usereditfilter, $userderestrictfilter, $hidden_collections, $userresourcedefaults,
            $userrequestmode, $request_adds_to_collection, $usercollection, $lang, $validcollection, $userpreferences,
-           $userorigin, $actions_enable, $actions_permissions, $actions_on, $user_csrf_token;
+           $userorigin, $actions_enable, $actions_permissions, $actions_on;
 		
 	# Hook to modify user permissions
 	if (hook("userpermissions")){$userdata["permissions"]=hook("userpermissions");} 
@@ -2098,13 +2098,6 @@ function setup_user($userdata)
             extract($GLOBALS, EXTR_REFS | EXTR_SKIP);
             eval($config_options);
             }
-
-    // Set CSRF Token for this user
-    // Note: This should not be overriden by config overrides
-    $user_csrf_token         = generateCSRFToken($userdata['session']);
-    $user_csrf_token_escaped = escape_check($user_csrf_token);
-    $userref_escaped         = escape_check($userref);
-    sql_query("UPDATE user SET csrf_token = '{$user_csrf_token_escaped}' WHERE ref = '{$userref_escaped}'");
 	}
 
 /**
@@ -2164,8 +2157,7 @@ function validate_user($user_select_sql, $getuserdata=true)
                        g.derestrict_filter,
                        u.hidden_collections,
                        u.accepted_terms,
-                       u.session,
-                       u.csrf_token
+                       u.session
                   FROM user AS u
              LEFT JOIN usergroup AS g on u.usergroup = g.ref
 			 LEFT JOIN usergroup AS pg ON g.parent=pg.ref

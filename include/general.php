@@ -6531,7 +6531,7 @@ function create_resource_type_field($name,$restype = 0, $type = FIELD_TYPE_TEXT_
 * 
 * @return string CSRF token
 */
-function generateCSRFToken($session)
+/*function generateCSRFToken($session)
     {
     global $randomised_session_hash;
 
@@ -6570,4 +6570,66 @@ function generateCSRFToken($session)
         }
 
     return $token;
+    }*/
+
+/**
+* 
+* 
+* 
+* Value is the string "session ID, timestamp, formID, and a random value" . formID is a unique string for each form 
+ (e.g. "resourceedit"). This is encrypted using the existing scramble key.
+* 
+* 
+* @return  string  Token base64 encoded
+*/
+function generateCSRFToken($session_id, $form_id)
+    {
+    global $scramble_key;
+
+    $data = json_encode(array(
+        "session"   => $session_id,
+        "timestamp" => time(),
+        "form_id"   => $form_id,
+        "nonce"     => generateSecureKey(128)
+    ));
+    $method   = "AES-128-CTR";
+    $password = $scramble_key;
+    $options  = OPENSSL_RAW_DATA;
+    $iv       = generateSecureKey(16);
+
+    $encrypted_text = openssl_encrypt($data, $method, $password, $options, $iv);
+
+    return $iv . "@@" . base64_encode($encrypted_text);
+    }
+
+function checkCSRFToken($data)
+    {
+    global $scramble_key;
+
+    $iv = substr($data, 0, 16);
+    $data = substr($data, 18);
+
+    $text = openssl_decrypt(base64_decode($data), "AES-128-CTR", $scramble_key, OPENSSL_RAW_DATA, $iv);
+echo "<pre>";print_r($text);echo "</pre>";die("You died in file " . __FILE__ . " at line " . __LINE__);
+    return;
+    }
+
+
+/**
+* Render the CSRF Token input tag
+* 
+* @return void
+*/
+function generateFormToken($form_id)
+    {
+    global $CSRF_token_identifier, $session;
+
+    // TODO: get the real session, not like below!!!
+    $session = getval('user', '');
+
+    $token = generateCSRFToken($session, $form_id);
+    ?>
+    <input type="hidden" name="<?php echo $CSRF_token_identifier; ?>" value="<?php echo $token; ?>">
+    <?php
+    return;
     }

@@ -23,6 +23,12 @@ if (array_key_exists("find",$_POST)) {$offset=0;} # reset page counter when post
 
 if (getval("newuser","")!="" && !hook("replace_create_user_save"))
 	{
+    $csrf_token = getval($CSRF_token_identifier, '');
+
+    checkCSRFToken($csrf_token);
+
+die(__FILE__);
+
 	$new=new_user(getvalescaped("newuser",""));
 	if ($new===false)
 		{
@@ -229,6 +235,7 @@ if(!hook("replace_create_user"))
     ?>
     <div class="BasicsBox">
         <form method="post" action="<?php echo $baseurl_short?>pages/team/team_user.php">
+            <?php generateFormToken("create_new_user"); ?>
     		<div class="Question">
     			<label for="newuser"><?php echo $lang["createuserwithusername"]?></label>
     			<div class="tickset">
