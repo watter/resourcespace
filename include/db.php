@@ -166,7 +166,7 @@ if (isset($remote_config_url) && (isset($_SERVER["HTTP_HOST"]) || getenv("RESOUR
 #
 if(PHP_SAPI != "cli")
     {
-    $baseurl_path   = parse_url($baseurl, PHP_URL_PATH);
+    /*$baseurl_path   = parse_url($baseurl, PHP_URL_PATH);
     $CORS_whitelist = array_merge(
         array(parse_url($baseurl, PHP_URL_SCHEME) . '://' . parse_url($baseurl, PHP_URL_HOST)),
         $CORS_whitelist
@@ -220,7 +220,7 @@ if(PHP_SAPI != "cli")
         exit();
         }
 
-    header("Origin: {$baseurl}");
+    header("Origin: {$baseurl}");*/
     }
 #
 # End of basic CORS and automated CSRF protection

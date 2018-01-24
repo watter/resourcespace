@@ -6574,7 +6574,7 @@ function create_resource_type_field($name,$restype = 0, $type = FIELD_TYPE_TEXT_
 
 /**
 * 
-* 
+* @uses generateSecureKey()
 * 
 * Value is the string "session ID, timestamp, formID, and a random value" . formID is a unique string for each form 
  (e.g. "resourceedit"). This is encrypted using the existing scramble key.
