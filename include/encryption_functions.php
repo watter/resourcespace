@@ -40,8 +40,7 @@ function rsEncrypt($data, $key)
     $enc_key = hash_hmac("sha256", "enc_key", $scramble_key, true);
 
     // Synthetic Initialization Vector (SIV)
-    $siv_data = hash_hmac("sha256", "{$nonce}{$key}", $mac_key, true);
-    $siv = substr($siv_data, 0, 16);
+    $siv = substr(hash_hmac("sha256", "{$nonce}{$scramble_key}{$key}", $mac_key, true), 0, 16);
 
     $cyphertext = openssl_encrypt($data, $method, $enc_key, $options, $siv);
 
@@ -82,10 +81,9 @@ function rsDecrypt($data, $key)
         }
 
     // Synthetic Initialization Vector (SIV)
-    $siv_data = hash_hmac("sha256", "{$nonce}{$key}", $mac_key, true);
-    $siv      = substr($siv_data, 0, 16);
+    $siv = substr(hash_hmac("sha256", "{$nonce}{$scramble_key}{$key}", $mac_key, true), 0, 16);
 
-    $plaintext = openssl_encrypt($cyphertext, $method, $enc_key, $options, $siv);
+    $plaintext = openssl_decrypt($cyphertext, $method, $enc_key, $options, $siv);
 
     return $plaintext;
     }
