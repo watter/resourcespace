@@ -906,7 +906,8 @@ else
         preventautosave = true;
         return <?php echo ($modal ? 'Modal' : 'CentralSpace'); ?>Post(this, true);
       ">
-<input type="hidden" name="upload_review_mode" value="<?php echo ($upload_review_mode?"true":"")?>" />
+    <?php generateFormToken("mainform"); ?>
+    <input type="hidden" name="upload_review_mode" value="<?php echo ($upload_review_mode?"true":"")?>" />
    <div class="BasicsBox">
     
       <input type="hidden" name="submitted" value="true">

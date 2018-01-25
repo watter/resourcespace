@@ -1187,9 +1187,13 @@ if($attach_alternatives_found_to_resources)
 								?>
 						
 						}
-                    }
-                
-            }; // End of pluploader config
+                    },
+    // Use multipart_params to send additional data to upload_plupload.php rather 
+    // than use the query strings in the URL
+    multipart_params: {
+        "<?php echo $CSRF_token_identifier; ?>": "<?php echo generateCSRFToken($usersession, 'upload_plupload'); ?>"
+    }
+}; // End of pluploader config
                 
         
 jQuery(document).ready(function () {            
@@ -1304,8 +1308,8 @@ if ($allowed_extensions!="" && $alternative==''){
 
 	
 <form class="pluploadform FormWide" action="<?php echo $baseurl_short?>pages/upload_plupload.php">
-
 <?php
+generateFormToken("upload_plupload");
 // Show the option to keep the existing file as alternative when replacing the resource
 if($replace_resource_preserve_option && ('' != $replace_resource  || '' != $replace))
     {
