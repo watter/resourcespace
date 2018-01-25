@@ -84,7 +84,7 @@ if(!$modal)
   
 	<form method="post" action="<?php echo $baseurl_short?>pages/delete.php?ref=<?php echo urlencode($ref) ?>&search=<?php echo urlencode($search)?>&offset=<?php echo urlencode($offset) ?>&order_by=<?php echo urlencode($order_by) ?>&sort=<?php echo urlencode($sort) ?>&archive=<?php echo urlencode($archive) ?>">
 	<input type=hidden name=ref value="<?php echo urlencode($ref) ?>">
-	
+    <?php generateFormToken("delete_resource"); ?>
 	<div class="Question">
 	<label><?php echo $lang["resourceid"]?></label>
 	<div class="Fixed"><?php echo urlencode($ref) ?></div>
