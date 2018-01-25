@@ -33,7 +33,7 @@ if (!get_edit_access($ref,$resource["archive"],false,$resource)) {exit ("Permiss
 
 hook("pageevaluation");
 
-if (getval("save","")!="")
+if (getval("save","")!="" && enforcePostRequest(getval("ajax", false)))
 	{
 	if ($delete_requires_password && hash('sha256', md5('RS' . $username . getvalescaped('password', ''))) != $userpassword)
 		{
