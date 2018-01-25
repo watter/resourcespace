@@ -21,14 +21,8 @@ $per_page=getvalescaped("per_page_list",$default_perpage_list);rs_setcookie('per
 
 if (array_key_exists("find",$_POST)) {$offset=0;} # reset page counter when posting
 
-if (getval("newuser","")!="" && !hook("replace_create_user_save"))
+if (getval("newuser","")!="" && !hook("replace_create_user_save") && enforcePostRequest(getval("ajax", false)))
 	{
-    $csrf_token = getval($CSRF_token_identifier, '');
-
-    checkCSRFToken($csrf_token);
-
-die(__FILE__);
-
 	$new=new_user(getvalescaped("newuser",""));
 	if ($new===false)
 		{
@@ -46,7 +40,7 @@ function show_team_user_filter_search(){
 	$groups=get_usergroups(true);
 	?>
 	<div class="BasicsBox">
-		<form method="post" action="<?php echo $baseurl_short?>pages/team/team_user.php">
+		<form method="get" action="<?php echo $baseurl_short?>pages/team/team_user.php">
 			<div class="Question">  
 				<label for="group"><?php echo $lang["group"]; ?></label>
 				<?php if (!hook('replaceusergroups')) { ?>
@@ -71,7 +65,7 @@ function show_team_user_filter_search(){
 	</div>
 
 	<div class="BasicsBox">
-		<form method="post" action="<?php echo $baseurl_short?>pages/team/team_user.php">
+		<form method="get" action="<?php echo $baseurl_short?>pages/team/team_user.php">
 			<div class="Question">
 				<label for="find"><?php echo $lang["searchusers"]?></label>
 				<div class="tickset">

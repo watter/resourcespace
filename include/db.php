@@ -1975,7 +1975,7 @@ function setup_user($userdata)
            $anonymous_user_session_collection, $global_permissions_mask, $user_preferences, $userrequestmode,
            $usersearchfilter, $usereditfilter, $userderestrictfilter, $hidden_collections, $userresourcedefaults,
            $userrequestmode, $request_adds_to_collection, $usercollection, $lang, $validcollection, $userpreferences,
-           $userorigin, $actions_enable, $actions_permissions, $actions_on;
+           $userorigin, $actions_enable, $actions_permissions, $actions_on, $usersession;
 		
 	# Hook to modify user permissions
 	if (hook("userpermissions")){$userdata["permissions"]=hook("userpermissions");} 
@@ -2009,6 +2009,7 @@ function setup_user($userdata)
         $userpassword=$userdata["password"];
         $userfullname=$userdata["fullname"];
         $userorigin=$userdata["origin"];
+        $usersession = $userdata["session"];
 
         $ip_restrict_group=trim($userdata["ip_restrict_group"]);
         $ip_restrict_user=trim($userdata["ip_restrict_user"]);
