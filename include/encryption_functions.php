@@ -52,9 +52,9 @@ function rsEncrypt($data, $key)
 
 
 /**
-* Encrypts data
+* Decrypts data
 * 
-* @param  string  $data  Data to be encypted
+* @param  string  $data  Data to be decypted
 * @param  string  $key
 * @todo Add a third parameter to use with custom metadata (NOT ResourceSpace metadata) for generating MAC. this should
 * add extra security by making MAC harder to be forged
