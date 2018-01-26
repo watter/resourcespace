@@ -419,6 +419,8 @@ jQuery(document).ready(function()
     
     });
 </script>
+
+<iframe src="blank.html" name="resultcount" id="resultcount" style="visibility:hidden;float:right;" width=1 height=1></iframe>
 <div class="BasicsBox">
 <h1><?php echo ($archiveonly)?$lang["archiveonlysearch"]:$lang["advancedsearch"];?> </h1>
 <p class="tight"><?php echo text("introtext")?></p>
@@ -511,6 +513,7 @@ if($search_includes_resources && !hook("advsearchrestypes"))
 if (!hook('advsearchallfields')) { ?>
 <!-- Search across all fields -->
 <input type="hidden" id="hiddenfields" name="hiddenfields" value="">
+    
 <div class="Question">
 <label for="allfields"><?php echo $lang["allfields"]?></label><input class="SearchWidth" type=text name="allfields" id="allfields" value="<?php echo htmlspecialchars($allwords)?>" onChange="UpdateResultCount();">
 <div class="clearerleft"> </div>
@@ -564,21 +567,10 @@ if (!$daterange_search)
 	<div class="clearerleft"> </div>
 	</div>
 <?php }} ?>
-<?php if ($star_search && $display_user_rating_stars){?>
-<div class="Question"><label><?php echo $lang["starsminsearch"];?></label>
-<select id="starsearch" name="starsearch" class="SearchWidth" onChange="UpdateResultCount();">
-<option value=""><?php echo $lang['anynumberofstars']?></option>
-<?php for ($n=1;$n<=5;$n++){?>
-	 <option value="<?php echo $n;?>" <?php if ($n==$starsearch){?>selected<?php } ?>><?php for ($x=0;$x<$n;$x++){?>&#9733;<?php } ?></option>
-<?php } ?>
-</select>
-<div class="clearerleft"> </div>
-</div>
-<?php } ?>
+
 
 <?php hook('advsearchaddfields'); ?>
 
-<iframe src="blank.html" name="resultcount" id="resultcount" style="visibility:hidden;" width=1 height=1></iframe>
 <?php
 # Fetch fields
 $fields=get_advanced_search_fields($archiveonly);
@@ -789,9 +781,9 @@ if($advanced_search_media_section)
     <h1 class="AdvancedSectionHead CollapsibleSectionHead" id="AdvancedSearchMediaSectionHead" ><?php echo $lang["media"]; ?></h1>
     <div class="AdvancedSection" id="AdvancedSearchMediaSection">
     <?php 
-    render_split_text_question($lang["pixel_height"], array('media_heightmin'=>'From','media_heightmax'=>'To'),$lang["pixels"], true, " class=\"stdWidth\" OnChange=\"UpdateResultCount();\"", array('media_heightmin'=>$media_heightmin,'media_heightmax'=>$media_heightmax));
-    render_split_text_question($lang["pixel_width"], array('media_widthmin'=>'From','media_widthmax'=>'To'),$lang["pixels"], true, " class=\"stdWidth\" OnChange=\"UpdateResultCount();\"", array('media_widthmin'=>$media_widthmin,'media_widthmax'=>$media_widthmax));
-    render_split_text_question($lang["filesize"], array('media_filesizemin'=>'From','media_filesizemax'=>'To'),$lang["megabyte-symbol"], false, " class=\"stdWidth\" OnChange=\"UpdateResultCount();\"", array('media_filesizemin'=>$media_filesizemin,'media_filesizemax'=>$media_filesizemax));
+    render_split_text_question($lang["pixel_height"], array('media_heightmin'=>$lang['from'],'media_heightmax'=>$lang['to']),$lang["pixels"], true, " class=\"stdWidth\" OnChange=\"UpdateResultCount();\"", array('media_heightmin'=>$media_heightmin,'media_heightmax'=>$media_heightmax));
+    render_split_text_question($lang["pixel_width"], array('media_widthmin'=>$lang['from'],'media_widthmax'=>$lang['to']),$lang["pixels"], true, " class=\"stdWidth\" OnChange=\"UpdateResultCount();\"", array('media_widthmin'=>$media_widthmin,'media_widthmax'=>$media_widthmax));
+    render_split_text_question($lang["filesize"], array('media_filesizemin'=>$lang['from'],'media_filesizemax'=>$lang['to']),$lang["megabyte-symbol"], false, " class=\"stdWidth\" OnChange=\"UpdateResultCount();\"", array('media_filesizemin'=>$media_filesizemin,'media_filesizemax'=>$media_filesizemax));
     render_text_question($lang["file_extension_label"], "media_fileextension", "",false," class=\"SearchWidth\" OnChange=\"UpdateResultCount();\"",$media_fileextension);
     render_dropdown_question($lang["previewimage"], "properties_haspreviewimage", array(""=>"","1"=>$lang["yes"],"0"=>$lang["no"]), $properties_haspreviewimage, " class=\"SearchWidth\" OnChange=\"UpdateResultCount();\"");
     ?>

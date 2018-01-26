@@ -23,19 +23,26 @@ if (!in_array($col_order_by,$collection_valid_order_bys)) {$col_order_by="create
 
 if (array_key_exists("find",$_POST)) {$offset=0;} # reset page counter when posting
 
-$name=getvalescaped("name","");
-if ($name!="" && $collection_allow_creation)
-	{
-	# Create new collection
-	$new=create_collection ($userref,$name);
-	set_user_collection($userref,$new);
-	refresh_collection_frame();
-	
-	# Log this
-	daily_stat("New collection",$userref);
-	
-	redirect("pages/collection_edit.php?ref=" . $new);
-	}
+$name = getvalescaped('name', '');
+if('' != $name && $collection_allow_creation)
+    {
+    // Create new collection
+    $new = create_collection($userref, $name);
+
+    // This is used to create collections directly from featured collections page when in simpleview mode
+    if($themes_simple_view && filter_var(getvalescaped('call_to_action_tile', false), FILTER_VALIDATE_BOOLEAN))
+        {
+        save_collection($new);
+        }
+
+    set_user_collection($userref, $new);
+    refresh_collection_frame();
+
+    // Log this
+    daily_stat('New collection', $userref);
+
+    redirect("pages/collection_edit.php?ref={$new}");
+    }
 
 $delete=getvalescaped("delete","");
 if ($delete != '')
@@ -232,7 +239,7 @@ include "../include/header.php";
 ?>
   <div class="BasicsBox">
     <h1><?php echo $lang["managemycollections"]?></h1>
-    <p class="tight"><?php echo text("introtext")?></p><br>
+    <p class="tight"><?php echo text("introtext")?></p><br />
 <div class="BasicsBox">
     <form method="post" action="<?php echo $baseurl_short?>pages/collection_manage.php">
 		<div class="Question">

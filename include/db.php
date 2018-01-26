@@ -3,17 +3,9 @@
  * Database functions, data manipulation functions
  * and generic post/get handling
  * 
- * @author Dan Huby <dan@montala.net> for Oxfam, April 2006
  * @package ResourceSpace
  * @subpackage Includes
  */
-#
-# db.php - Database functions, data manipulation functions
-# and generic post/get handling
-#
-# Dan Huby (dan@montala.net) for Oxfam, April 2006
-
-# ensure no caching (dynamic site)
 
 
 // Include core functions:
@@ -31,7 +23,7 @@ $pagetime_start = microtime();
 $pagetime_start = explode(' ', $pagetime_start);
 $pagetime_start = $pagetime_start[1] + $pagetime_start[0];
 
-if (!isset($suppress_headers) || !$suppress_headers)
+if ((!isset($suppress_headers) || !$suppress_headers) && !isset($nocache))
 	{
 	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");  // always modified
@@ -107,10 +99,20 @@ include (dirname(__FILE__)."/config.php");
 # -------------------------------------------------------------------------------------------
 # Remote config support - possibility to load the configuration from a remote system.
 #
-if (isset($remote_config_url) && isset($_SERVER["HTTP_HOST"]))
+if (isset($remote_config_url) && (isset($_SERVER["HTTP_HOST"]) || getenv("RESOURCESPACE_URL") != ""))
 	{
 	sql_connect(); # Connect a little earlier
-	$host=$_SERVER['HTTP_HOST'];$hostmd=md5($host);
+	if(isset($_SERVER['HTTP_HOST']))
+		{
+		$host=$_SERVER['HTTP_HOST'];                   
+		}
+	else
+		{
+		// If running scripts from command line the host will not be available and will need to be set as an environment variable
+		// e.g. export RESOURCESPACE_URL="www.yourresourcespacedomain.com";cd /var/www/pages/tools; php update_checksums.php
+		$host=getenv("RESOURCESPACE_URL");
+		}
+	$hostmd=md5($host);
 	
 	# Look for configuration for this host (supports multiple hosts)
 	$remote_config_sysvar="remote-config-" . $hostmd; # 46 chars (column is 50)
@@ -262,10 +264,11 @@ $querylog=array();
 # -----------LANGUAGES AND PLUGINS-------------------------------
 
 # Setup plugin configurations
+include_once "config_functions.php";
+include_once "plugin_functions.php";
+
 if ($use_plugins_manager)
 	{
-	include 'config_functions.php';
-	include "plugin_functions.php";
 	$legacy_plugins = $plugins; # Make a copy of plugins activated via config.php
 	# Check that manually (via config.php) activated plugins are included in the plugins table.
 	foreach($plugins as $plugin_name)
@@ -1040,13 +1043,13 @@ function CheckDBStruct($path,$verbose=false)
 					while (($col = fgetcsv($f,5000)) !== false)
 						{
 						if (count($col)> 1)
-							{
+							{   
 							# Look for this column in the existing columns.
 							$found=false;
 							for ($n=0;$n<count($existing);$n++)
 								{
 								if ($existing[$n]["Field"]==$col[0])
-									{
+									{ 
 									$found=true;
 									$existingcoltype=strtoupper($existing[$n]["Type"]);
 									$basecoltype=strtoupper(str_replace("§",",",$col[1]));									
@@ -1056,17 +1059,20 @@ function CheckDBStruct($path,$verbose=false)
 									// Checks added so that we don't trim off data if a varchar size has been increased manually or by a plugin. 
 									// - If column is of same type but smaller number, update
 									// - If target column is of type text, update
+									// - If target column is of type varchyar and currently int, update (e.g. the 'archive' column in collection_savedsearch moved from a single state to a multiple)
 									
 									if	(
 										(count($matchbase)==3 && count($matchexisting)==3 && $matchbase[1] == $matchexisting[1] && $matchbase[2] > $matchexisting[2])
 										 ||
 										(stripos($basecoltype,"text")!==false && stripos($existingcoltype,"text")===false)
 										||
-										(strtoupper($basecoltype)=="BIGINT" && strtoupper($existingcoltype=="INT"))
+										(strtoupper(substr($basecoltype,0,6))=="BIGINT" && strtoupper(substr($existingcoltype,0,3)=="INT"))
 										||
-										(strtoupper($basecoltype)=="INT" && strtoupper($existingcoltype=="TINYINT") || strtoupper($existingcoltype=="SMALLINT"))
+										(strtoupper(substr($existingcoltype,0,3))=="INT" && (strtoupper(substr($existingcoltype,0,7))=="TINYINT" || strtoupper(substr($existingcoltype,0,8))=="SMALLINT"))
+										||
+										(strtoupper(substr($basecoltype,0,7))=="VARCHAR" && strtoupper(substr($existingcoltype,0,3)=="INT"))
 									       )
-										{        
+										{    
 										debug("DBSTRUCT - updating column " . $col[0] . " in table " . $table . " from " . $existing[$n]["Type"] . " to " . str_replace("§",",",$col[1]) );
 										// Update the column type
 										sql_query("alter table $table modify `" .$col[0] . "` " .  $col[1]);       
@@ -1396,7 +1402,7 @@ function checkperm_user_edit($user)
 		{
 		return false;
 		}
-	if (!isset($user['usergroup']))		// allow for passing of user array or user ref to this function.
+	if (!is_array($user))		// allow for passing of user array or user ref to this function.
 		{
 		$user=get_user($user);
 		}
@@ -1710,8 +1716,6 @@ function get_resource_table_joins(){
 	global 
 	$rating_field,
 	$sort_fields,
-	$small_thumbs_display_fields,
-	$xl_thumbs_display_fields,
 	$thumbs_display_fields,
 	$list_display_fields,
 	$data_joins,
@@ -1724,8 +1728,6 @@ function get_resource_table_joins(){
 
 	$joins=array_merge(
 	$sort_fields,
-	$small_thumbs_display_fields,
-	$xl_thumbs_display_fields,
 	$thumbs_display_fields,
 	$list_display_fields,
 	$data_joins,
@@ -2074,14 +2076,12 @@ function validate_user($user_select_sql, $getuserdata=true)
             "   SELECT u.ref,
                        u.username,
                        u.origin,
-                       g.permissions,
+                       if(find_in_set('permissions',g.inherit_flags) AND pg.permissions IS NOT NULL,pg.permissions,g.permissions) permissions,
                        g.parent,
                        u.usergroup,
                        u.current_collection,
                        u.last_active,
-                       timestampdiff(second,
-                       u.last_active,
-                       now()) idle_seconds,
+                       timestampdiff(second, u.last_active, now()) AS idle_seconds,
                        u.email,
                        u.password,
                        u.fullname,
@@ -2091,15 +2091,16 @@ function validate_user($user_select_sql, $getuserdata=true)
                        g.name groupname,
                        u.ip_restrict ip_restrict_user,
                        u.search_filter_override,
-                       resource_defaults,
+                       g.resource_defaults,
                        u.password_last_change,
-                       g.config_options,
+                       if(find_in_set('config_options',g.inherit_flags) AND pg.config_options IS NOT NULL,pg.config_options,g.config_options) config_options,
                        g.request_mode,
                        g.derestrict_filter,
                        u.hidden_collections,
                        u.accepted_terms
                   FROM user AS u
              LEFT JOIN usergroup AS g on u.usergroup = g.ref
+			 LEFT JOIN usergroup AS pg ON g.parent=pg.ref
                  WHERE {$full_user_select_sql}"
         );
 

@@ -145,12 +145,12 @@ function iiif_get_thumbnail($resourceid)
     {
 	global $rootimageurl;
 	
-	$img_path = get_resource_path($resourceid,true,'thm',false);
-	if(!file_exists($img_path))
-            {
-		    return false;
-            }
-			
+    $img_path = get_resource_path($resourceid,true,'thm',false);
+    if(!file_exists($img_path))
+        {
+        return false;
+        }
+	
 	$thumbnail = array();
 	$thumbnail["@id"] = $rootimageurl . $resourceid . "/full/thm/0/default.jpg";
 	$thumbnail["@type"] = "dctypes:Image";
@@ -192,13 +192,13 @@ function iiif_get_thumbnail($resourceid)
 function iiif_get_image($identifier,$resourceid,$position)
     {
     global $rooturl,$rootimageurl;
+
+    $img_path = get_resource_path($resourceid,true,'',false);
+    if(!file_exists($img_path))
+        {
+        return false;
+        }
 	
-	$img_path = get_resource_path($resourceid,true,'',false);
-	if(!file_exists($img_path))
-            {
-		    return false;
-            }
-			
 	$images = array();
 	$images["@context"] = "http://iiif.io/api/presentation/2/context.json";
 	$images["@id"] = $rooturl . $identifier . "/annotation/" . $position;

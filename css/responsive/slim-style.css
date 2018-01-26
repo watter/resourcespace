@@ -26,6 +26,12 @@
     text-align: center;
     margin-top: 10px;
 }
+#PreviewImageLarge {
+    width: 100%;
+}
+body {
+    -webkit-overflow-scrolling: touch;
+}
 
 @media(max-width:1100px) {
     #SearchBarContainer {
@@ -122,11 +128,20 @@
     .BasicsBox .Question {
         overflow-x:auto;
     }
+    .customFieldset table {
+        white-space: nowrap;
+    }
+    #specific_user_groups {
+        padding-left: 0 !important;
+    }
 
 }
 @media(max-width:700px) {
     .FormHelp {
         margin:0 0 10px 0px;
+    }
+    .Question {
+        overflow: scroll;
     }
 }
 @media(max-width:525px) {
@@ -152,6 +167,11 @@
         margin-left:3%;
         margin-right:3%;
         padding:0;
+        top:0;
+        transform:translateY(0); 
+    }
+    #AntiSpamImage {
+        margin-left: 0 !important;
     }
 }
 /* Glyphs */
@@ -190,6 +210,7 @@
     }
     #HeaderNav1Click {
         float:right;
+        margin-right: 5px;
     }
     #HeaderNav2Click {
         float: right;
@@ -204,7 +225,7 @@
     #HeaderNav1 {
         display:none;
         margin:0;
-        height: auto;
+        height: auto !important;
         float: none;
         clear: both;
         text-align: right;
@@ -212,10 +233,11 @@
     #HeaderNav2 {
         display:none;
         margin:0;
-        height: auto;
+        height: auto !important;
         float: none;
         width: 100%;
         clear: both;
+        text-align: right;
     }
     #Header .HorizontalNav ul li {
         display: inline-block;
@@ -229,7 +251,7 @@
     .SlimHeader #Header.slimheader_darken .HorizontalNav ul li a:visited{
         display:inline-block;
         text-align: center;
-        background: #d2d2d2;   
+        background: #ffffff;   
         border: 1px solid white;
         height: 45px;
         line-height: 45px;
@@ -242,15 +264,26 @@
         height:auto;
     }
     .HeaderMenu #HeaderImg {
-        height:40px;
+        max-height:40px;
     }
     #HeaderImg {
-        height:47px;
+        max-height:47px;
     }
     #Header.slimheader_darken a:link, #Header.slimheader_darken a:visited, #Header.slimheader_darken a:active {
         color: #565656;
     }
 
+}
+@media(max-width: 1100px) {
+    #HeaderNav1 li a,
+    #HeaderNav2 li a {
+        color: #3a3a3a;
+        opacity: 1;
+        background-color: #ffffff;
+    }
+    #HeaderNav2 {
+        padding-left: 0;
+    }
 }
 @media(max-width:900px) {
     #HeaderButtons {
@@ -287,7 +320,17 @@
     }
     .ResponsiveHeaderButton {
         margin-left:5px;
-    }    
+    }
+    #HeaderNav1 li a,
+    #HeaderNav2 li a {
+        width: 90vw;
+        padding:0 !important;
+        text-align: center;
+    }
+    #HeaderNav1 ul,
+    #HeaderNav2 ul {
+        text-align: center;
+    }
 }
 @media(max-width:380px) {
     #Header {
@@ -297,12 +340,6 @@
         max-width: 160px;
         margin-top: 5px;
         height:auto;
-    }
-    .HeaderImgLink {
-        clear: both;
-        display: block;
-        width: 100%;
-        text-align: left;
     }
 }
 @media(min-width:1201px) {
@@ -340,6 +377,10 @@
     #SearchBoxPanel .SearchItem, #SearchBoxPanel .ui-widget {
         display:inline-block;
         margin:0;
+    }
+    #SearchBoxPanel .ui-widget {
+        width: 250px;
+        margin-top: 10px;
     }
     #searchspace {
         padding:0;
@@ -383,6 +424,14 @@
         display: inline-block;
         width: 130px;
     }
+    #CentralSpaceResources .ResourcePanel {
+        width: 150px;
+        margin: 0 7px 7px 0;
+    }
+    #CentralSpaceResources .ResourcePanel.ResourcePanelLarge {
+        width: 320px;
+        margin: 0 14px 14px 0;
+    }
     /* Show Responsive Bar */
     #SearchBoxPanel input, #SearchBoxPanel label, #SearchBoxPanel h2, #SearchBoxPanel .SearchItem, #SearchBoxPanel .StarRatings, #SearchBoxPanel #searchbarrt, #SearchBoxPanel p {
         display:none;
@@ -405,13 +454,27 @@
         margin-left:15px;
     }
     .LoginBoxPanel {
-        margin-top:8px;   
+        margin-top:8px;  
+    }
+    /* Metadata fields */
+    .SearchItem .SearchWidth, .SearchItem .SearchWidthHalf {
+        float: right;
+        margin-left: 4px;
+    }
+    #searchspace .SearchItem {
+        clear: right;
     }
 
 }
 @media(max-width:600px) {
     .ResponsiveSimpleSearch .StarRatings {
         width:100%;
+    }
+}
+@media(max-width:400px) {
+    .ImageStrip {
+        height: auto;
+        width: 100%;
     }
 }
 @media(max-width:370px) {
@@ -526,6 +589,7 @@
     }
     .HomePanelIN {
         min-height: 145px;
+        max-height: 180px;
         height:auto;
     }
 
@@ -594,13 +658,10 @@
         width: 95%;
         display: none;
         margin: 0 0 10px 0;
-        margin-left: 5%;
     }
     .TopInpageNav .InpageNavLeftBlock a, .InpageNavLeftBlock span {
         display:inline-block;
         float:none;
-        font-size: 1em;
-        vertical-align: middle;
     }
  }
  @media(max-width:1200px) {
@@ -620,15 +681,17 @@
     }
     .ResourcePanelInfo {
         text-align:center;
+        height: 35px;
+        white-space: normal;
     }
     .BottomInpageNav .InpageNavLeftBlock {
         width:auto;
     }
-    .largethumbsiconactive {
-        height:auto;
-    }
     .TopInpageNavRight {
         margin-top:1px;
+    }
+    .ResourcePanel .ImageWrapper {
+        margin-top: 0;
     }
 }
 @media(max-width:700px) {
@@ -688,13 +751,6 @@
     .ResourcePanelShellLarge {
         width:100%;
     }
-    .ResourcePanelLarge {
-        width:100%;
-    }
-    .ResourcePanelLarge img {
-        width:98%;
-        height:auto;
-    }
     .ResourceAlignLarge {
         width:100%;
         height:auto;
@@ -708,6 +764,9 @@
     .TopInpageNavRight {
         margin-top:10px;
         text-align:center;
+    }
+    #Responsive_ResultDisplayOptions {
+        margin-bottom: 12px;    
     }
 }
 @media(min-width:1301px) {
@@ -973,3 +1032,10 @@
     }
 }
 
+/* VideoJS */
+@media (max-width:600px) {
+    .video-js {
+        width: 80vw;
+        height: 80vw;
+    }
+}

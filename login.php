@@ -75,7 +75,7 @@ elseif (array_key_exists("username",$_POST) && getval("langupdate","")=="")
 	if ($result['valid'])
 		{
 	 	$expires=0;
-       	if (getval("remember","")!="") {$expires = 100;} # remember login for 100 days
+       	if ($allow_keep_logged_in && getval("remember","")!="") {$expires = 100;} # remember login for 100 days
 
 		# Store language cookie
 		rs_setcookie("language", $language, 1000); # Only used if not global cookies
@@ -185,35 +185,9 @@ if (getval("langupdate","")!="")
 
 include "include/header.php";
 
-if($login_background && !hook('replace_login_background'))
+if($login_background)
 	{
-    $backimageurl = "";
-
-    // Create homeanim folder if we don't have one
-    if(!file_exists(dirname(__FILE__) . "/{$homeanim_folder}"))
-        {
-        mkdir(dirname(__FILE__) . "/{$homeanim_folder}", 0777, true);
-        }
-
-    $dir = dirname(__FILE__) . "/" . $homeanim_folder;
-    $d = scandir($dir);    
-	sort($d, SORT_NUMERIC);
-    foreach ($d as $f) 
-		{ 
-		if(preg_match("/[0-9]+\.(jpg)$/",$f))
-            {
-            $backimageurl= $baseurl_short . $homeanim_folder . "/" . $f;  
-            break;    
-            }
-        }
-	?>
-	<style>
-	#UICenter {
-		background-image: url('<?php echo $backimageurl; ?>');
-		}
-	</style>
-	<div id="login_box">
-	<?php
+    include "include/login_background.php";
 	}
 
 	
@@ -307,6 +281,29 @@ jQuery(document).ready(function() {
     jQuery(window).capslockstate();
 
 });
+
+/* Responsive Stylesheet inclusion based upon viewing device */
+if(document.createStyleSheet)
+    {
+    document.createStyleSheet('<?php echo $baseurl ;?>/css/responsive/slim-style.css?rcsskey=<?php echo $css_reload_key; ?>');
+    }
+else
+    {
+    jQuery("head").append("<link rel='stylesheet' href='<?php echo $baseurl ;?>/css/responsive/slim-style.css?rcsskey=<?php echo $css_reload_key; ?>' type='text/css' media='screen' />");
+    }
+
+if(!is_touch_device() && jQuery(window).width() <= 1300)
+    {
+    if(document.createStyleSheet)
+        {
+        document.createStyleSheet('<?php echo $baseurl; ?>/css/responsive/slim-non-touch.css?rcsskey=<?php echo $css_reload_key; ?>');
+        }
+    else
+        {
+        jQuery("head").append("<link rel='stylesheet' href='<?php echo $baseurl; ?>/css/responsive/slim-non-touch.css?rcsskey=<?php echo $css_reload_key; ?>' type='text/css' media='screen' />");
+        }
+    }
+
 </script>
 
 <?php

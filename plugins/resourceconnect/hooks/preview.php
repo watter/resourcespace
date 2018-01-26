@@ -15,6 +15,18 @@ function HookResourceconnectPreviewBeforefooter()
 	<?php
 	}
 
+function HookResourceconnectPreviewFullpreviewresultnav()
+    {
+    # Remove nav links for large preview.
+    global $is_resourceconnect;
+    if (isset($is_resourceconnect)) {
+        ?><br />
+        <p><a href="#" onclick="window.close()"><i class="fa fa-times-circle"></i> Close tab</p></a>
+        <?php return true; 
+        }    
+    }
+    
+    
 function HookResourceconnectPreviewNextpreviousextraurl()
 	{
 	if (getval("resourceconnect_source","")=="") {return false;} # Not a ResourceConnect result set. 

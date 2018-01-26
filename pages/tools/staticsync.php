@@ -79,7 +79,7 @@ if(isset($staticsync_alternative_file_text) && !$staticsync_ingest)
     $syncedalternatives = sql_query("SELECT ref, file_name, resource, creation_date FROM resource_alt_files WHERE file_name like '%" . escape_check($syncdir) . "%'");
     foreach($syncedalternatives as $syncedalternative)
         {
-        $shortpath=str_replace($syncdir . DIRECTORY_SEPARATOR, '', $syncedalternative["file_name"]);      
+        $shortpath=str_replace($syncdir . '/', '', $syncedalternative["file_name"]);      
         $done[$shortpath]["ref"]=$syncedalternative["resource"];
         $done[$shortpath]["modified"]=$syncedalternative["creation_date"];
         $done[$shortpath]["alternative"]=$syncedalternative["ref"];
@@ -160,7 +160,8 @@ function ProcessFolder($folder)
            $staticsync_defaultstate, $additional_archive_states, $staticsync_extension_mapping_append_values,
            $staticsync_deleted_state, $staticsync_alternative_file_text, $staticsync_filepath_to_field, 
            $resource_deletion_state, $alternativefiles, $staticsync_revive_state, $enable_thumbnail_creation_on_upload,
-           $FIXED_LIST_FIELD_TYPES;
+           $FIXED_LIST_FIELD_TYPES, $staticsync_extension_mapping_append_values_fields, $view_title_field, $filename_field,
+           $staticsync_whitelist_folders;
     
     $collection = 0;
     $treeprocessed=false;
@@ -171,18 +172,20 @@ function ProcessFolder($folder)
     $dh = opendir($folder);
     while (($file = readdir($dh)) !== false)
         {
-        if ( $file == '.' || $file == '..')
+        if($file == '.' || $file == '..')
             {
             continue;
             }
-        $filetype  = filetype($folder . DIRECTORY_SEPARATOR . $file);
-        $fullpath  = $folder . DIRECTORY_SEPARATOR . $file;
-        $shortpath = str_replace($syncdir . DIRECTORY_SEPARATOR, '', $fullpath);
+
+        $filetype        = filetype($folder . '/' . $file);
+        $fullpath        = $folder . '/' . $file;
+        $shortpath       = str_replace($syncdir . '/', '', $fullpath);
+        $shortpath_parts = explode('/', $shortpath);
         
         if(isset($staticsync_alternative_file_text) && strpos($file,$staticsync_alternative_file_text)!==false)
             {
             // Set a flag so we can process this later in case we don't processs this along with a primary resource file (it may be a new alternative file for an existing resource)
-            $alternativefiles[]=$syncdir . DIRECTORY_SEPARATOR . $shortpath;
+            $alternativefiles[]=$syncdir . '/' . $shortpath;
             continue;
             }
             
@@ -205,15 +208,27 @@ function ProcessFolder($folder)
             array_pop($path_parts);
             $treenodes=touch_category_tree_level($path_parts);
             $treeprocessed=true;
-            }   
+            }
 
         # -----FOLDERS-------------
-        if ((($filetype == "dir") || $filetype == "link") && 
-            (strpos($nogo, "[$file]") === false) && 
-            (strpos($file, $staticsync_alternatives_suffix) === false))
+        if(
+            ($filetype == 'dir' || $filetype == 'link')
+            && count($staticsync_whitelist_folders) > 0
+            && !isPathWhitelisted($shortpath, $staticsync_whitelist_folders)
+        )
             {
-            # Recurse
-            ProcessFolder($folder . "/" . $file);
+            // Folders which are not whitelisted will not be processed any further
+            continue;
+            }
+
+        if(
+            ($filetype == 'dir' || $filetype == 'link')
+            && strpos($nogo, "[{$file}]") === false
+            && strpos($file, $staticsync_alternatives_suffix) === false
+        )
+            {
+            // Recurse
+            ProcessFolder("{$folder}/{$file}");
             }
 
         # -------FILES---------------
@@ -233,7 +248,7 @@ function ProcessFolder($folder)
                 {
                 // Extra check to make sure we don't end up with duplicates
                 $existing=sql_value("SELECT ref value FROM resource WHERE file_path = '" . escape_check($shortpath) . "'",0);
-                if($existing>0)
+                if($existing>0 || hook('staticsync_plugin_add_to_done'))
                     {
                     $done[$shortpath]["processed"]=true;
                     $done[$shortpath]["modified"]=date('Y-m-d H:i:s',time());
@@ -252,7 +267,7 @@ function ProcessFolder($folder)
                     
                     if ($staticsync_folder_structure)
                         {
-                        for ($x=0;$x<count($e)-1;$x++)
+                        for ($x=0;$x<count($e)-2;$x++)
                             {
                             if ($x != 0)
                                 {
@@ -298,7 +313,7 @@ function ProcessFolder($folder)
                 if (is_numeric($modified_type)) { $type = $modified_type; }
 
                 # Formulate a title
-                if ($staticsync_title_includes_path)
+                if ($staticsync_title_includes_path && $view_title_field!==$filename_field)
                     {
                     $title_find = array('/',   '_', ".$extension" );
                     $title_repl = array(' - ', ' ', '');
@@ -389,7 +404,7 @@ function ProcessFolder($folder)
                                                 $newnode = set_node(null, $field, trim($value), null, null, true);
                                                 echo "Adding node" . trim($value) . "\n";
                                                 
-                                                if($staticsync_extension_mapping_append_values && !in_array($field_info['type'],array(FIELD_TYPE_DROP_DOWN_LIST,FIELD_TYPE_RADIO_BUTTONS)))
+                                                if($staticsync_extension_mapping_append_values && !in_array($field_info['type'],array(FIELD_TYPE_DROP_DOWN_LIST,FIELD_TYPE_RADIO_BUTTONS)) && (!isset($staticsync_extension_mapping_append_values_fields) || in_array($field_info['ref'], $staticsync_extension_mapping_append_values_fields)))
                                                     {
                                                     // The $staticsync_extension_mapping_append_values variable actually refers to folder->metadata mapping, not the file extension
                                                     $field_nodes[$field][]   = $newnode;
@@ -404,18 +419,18 @@ function ProcessFolder($folder)
                                             }
                                         else
                                             {
-                                            if($staticsync_extension_mapping_append_values)
+                                            if($staticsync_extension_mapping_append_values && (!isset($staticsync_extension_mapping_append_values_fields) || in_array($field_info['ref'], $staticsync_extension_mapping_append_values_fields)))
                                                 {
-    											$given_value=$value;
-    											// append the values if possible...not used on dropdown, date, category tree, datetime, or radio buttons
-    											if(in_array($field['type'],array(0,1,4,5,6,8)))
+                                                $given_value=$value;
+                                                // append the values if possible...not used on dropdown, date, category tree, datetime, or radio buttons
+                                                if(in_array($field['type'],array(0,1,4,5,6,8)))
                                                     {
                                                     $old_value=sql_value("select value value from resource_data where resource=$r and resource_type_field=$field","");
                                                     $value=append_field_value($field_info,$value,$old_value);
                                                     }
                                                 }
                                             update_field ($r, $field, $value);
-                                            if($staticsync_extension_mapping_append_values && isset($given_value))
+                                            if($staticsync_extension_mapping_append_values && (!isset($staticsync_extension_mapping_append_values_fields) || in_array($field_info['ref'], $staticsync_extension_mapping_append_values_fields)) && isset($given_value))
                                                 {
                                                 $value=$given_value;
                                                 }
@@ -564,7 +579,7 @@ function staticsync_process_alt($alternativefile, $ref="", $alternative="")
     // Process an alternative file
     global $staticsync_alternative_file_text, $syncdir, $lang, $staticsync_ingest, $alternative_file_previews, $done;
 	
-    $shortpath = str_replace($syncdir . DIRECTORY_SEPARATOR, '', $alternativefile);
+    $shortpath = str_replace($syncdir . '/', '', $alternativefile);
 	if(!isset($done[$shortpath]))
 		{
 		$alt_parts=pathinfo($alternativefile);
@@ -573,10 +588,10 @@ function staticsync_process_alt($alternativefile, $ref="", $alternative="")
 		if($ref=="")
 			{
 			// We need to find which resource this relates to
-			echo "Searching for primary resource related to " . $alternativefile . "  in " . $alt_parts['dirname'] . DIRECTORY_SEPARATOR . $altbasename . "." .  PHP_EOL;
+			echo "Searching for primary resource related to " . $alternativefile . "  in " . $alt_parts['dirname'] . '/' . $altbasename . "." .  PHP_EOL;
 			foreach($done as $syncedfile=>$synceddetails)
 				{
-				if(strpos($syncdir . DIRECTORY_SEPARATOR . $syncedfile,$alt_parts['dirname'] . DIRECTORY_SEPARATOR . $altbasename . ".")!==false)
+				if(strpos($syncdir . '/' . $syncedfile,$alt_parts['dirname'] . '/' . $altbasename . ".")!==false)
 					{
 					// This synced file has the same base name as the resource
 					$ref= $synceddetails["ref"];
@@ -692,7 +707,7 @@ if (!$staticsync_ingest)
     
     foreach ($resources_to_archive as $rf)
         {
-        $fp = $syncdir . DIRECTORY_SEPARATOR . $rf["file_path"];
+        $fp = $syncdir . '/' . $rf["file_path"];
         if (isset($rf['syncdir']) && $rf['syncdir'] != '')
                {
                # ***for modified syncdir directories:
@@ -703,7 +718,7 @@ if (!$staticsync_ingest)
             {
 			// Additional check - make sure the archive state hasn't changed since the start of the script
 			$cas=sql_value("SELECT archive value FROM resource where ref='{$rf["ref"]}'",0);
-			if(!in_array($cas,$staticsync_ignore_deletion_states))
+			if(isset($staticsync_ignore_deletion_states) && !in_array($cas,$staticsync_ignore_deletion_states))
 				{
 				if(!isset($rf["alternative"]))
 					{

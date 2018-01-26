@@ -30,10 +30,11 @@ foreach ($fields_tab_names as $tabname) {
 	}
 }
 $fields_tab_names = array_intersect($fields_tab_names, $tabs_with_data);
+sort($fields_tab_names);
 
 if(isset($related_type_show_with_data)) {
-	// Get resource type tab names (if any set):
-	$resource_type_tab_names = sql_array('SELECT tab_name as value FROM resource_type', '');
+	// Get resource type tab names, excluding the current resource type (if any set):
+	$resource_type_tab_names = sql_array("SELECT tab_name as value FROM resource_type WHERE ref<>'" . $resource['resource_type'] . "'", "");
 	$resource_type_tab_names = array_values(array_unique($resource_type_tab_names));
 
 	// These are the tab names which will be rendered for the resource specified:
@@ -119,6 +120,7 @@ if((isset($fields_tab_names) && !empty($fields_tab_names)) && count($fields) > 0
 <?php 
 #  ----------------------------- Draw standard fields ------------------------
 ?>
+<?php hook("beforefields");?>
 <?php if ($show_resourceid) { ?><div class="itemNarrow"><h3><?php echo $lang["resourceid"]?></h3><p><?php echo htmlspecialchars($ref)?></p></div><?php } ?>
 <?php if ($show_access_field) { ?><div class="itemNarrow"><h3><?php echo $lang["access"]?></h3><p><?php echo @$lang["access" . $resource["access"]]?></p></div><?php } ?>
 <?php if ($show_resource_type) { ?><div class="itemNarrow"><h3><?php echo $lang["resourcetype"]?></h3><p><?php echo  get_resource_type_name($resource["resource_type"])?></p></div><?php } ?>
@@ -141,7 +143,6 @@ $tabname                        = '';
 $tabcount                       = 0;
 $extra                          = '';
 $show_default_related_resources = TRUE;
-
 foreach($fields_tab_names as $tabname)
     {
     for($i = 0; $i < count($fields); $i++)
@@ -157,16 +158,8 @@ foreach($fields_tab_names as $tabname)
             }
         }
 
-    // Add related resources which have the same tab name:
-    if(isset($related_type_show_with_data) && isset($fields_tab_names) && !empty($fields_tab_names))
-        {
-        include '../include/related_resources.php';
-
-        $show_default_related_resources = FALSE;
-
-        //Once we've shown the related resources unset the variable so they won't be shown as thumbnails:
-        unset($relatedresources);
-        }
+    // Show related resources which have the same tab name:
+    include '../include/related_resources.php';
 
     $tabcount++;
     if($tabcount != count($fields_tab_names))
@@ -200,95 +193,6 @@ if(empty($fields_tab_names))
                 }
             }
         }
-    }
-
-// Option to display related resources of specified types along with metadata
-if ($enable_related_resources && $show_default_related_resources)
-	{
-	$archive_standard=true;
-	$search_all_workflow_states=true;
-	$relatedresources=do_search("!related" . $ref);
-	#build array of related resources' types
-	$related_restypes=array();
-	for ($n=0;$n<count($relatedresources);$n++)
-		{
-		$related_restypes[]=$relatedresources[$n]['resource_type'];
-		}
-	#reduce extensions array to unique values
-	$related_restypes=array_unique($related_restypes);
-	
-	$relatedtypes_shown=array();
-	$related_resources_shown=0;
-	if(isset($related_type_show_with_data))
-		{
-		
-		# Render fields with display template before the list of related resources:
-		echo $extra;
-		
-		foreach($related_type_show_with_data as $rtype)
-			{
-			// Is this a resource type that needs to be displayed?
-			if (!in_array($rtype,$related_type_show_with_data) || (!in_array($rtype,$related_restypes) && !$related_type_upload_link))
-				{
-				continue;
-				}
-			$restypename=sql_value("select name as value from resource_type where ref = '$rtype'","");
-			$restypename = lang_or_i18n_get_translated($restypename, "resourcetype-", "-2");		
-			
-			?>
-			<div class="clearerleft"></div>
-			<div class="item" id="RelatedResourceData">			
-			<?php
-			if(in_array($rtype,$related_restypes) || ($related_type_upload_link && $edit_access))
-				{
-				///only show the table if there are related resources of this type
-				?>
-				<div class="Listview ListviewTight" >
-					<table border="0" cellspacing="0" cellpadding="0" class="ListviewStyle">
-					<tbody>
-					<tr class="ListviewTitleStyle">
-					<td><h3><?php echo $restypename ?></h3></td>		
-					<td><div class="ListTools"></div></td>                                    
-					</tr>
-					<?php
-					foreach($relatedresources as $relatedresource)
-						{
-						if($relatedresource["resource_type"]==$rtype)
-							{
-							$relatedtitle=$relatedresource["field".$view_title_field];
-												
-							echo "<tr id=\"relatedresource" . $relatedresource["ref"] . "\" class=\"RelatedResourceRow\">";
-							echo "<td class=\"link\"><a href=\"" . $baseurl_short . "pages/view.php?ref=" . $relatedresource["ref"] . "\">" . htmlspecialchars($relatedtitle) . "</a></td>";                                    
-							echo "<td>";
-							if($edit_access)
-								{echo "<div class=\"ListTools\" ><a href=\"#\" onClick=\"if(confirm('" . $lang["related_resource_confirm_delete"] . "')){relateresources(" . $ref . "," . $relatedresource["ref"] . ",'remove');}return false;\" ><?php echo LINK_CARET ?>" . $lang["action-remove"] . "</a></div>";
-								}
-							echo "</td>";	
-							echo "</tr>";	
-							$related_resources_shown++;
-							}
-						}
-					
-					if($related_type_upload_link && $edit_access)
-						{
-						echo "<tr><td></td><td><div class=\"ListTools\"><a href=\"" . $baseurl_short . "pages/edit.php?ref=-" . $userref . "&uploader=plupload&resource_type=" . $rtype ."&submitted=true&relateto=" . $ref . "&collection_add=&redirecturl=" . urlencode($baseurl . "/?r=" . $ref) . "\"><?php echo LINK_CARET ?>" . $lang["upload"] . "</a></div></td>";
-						}			
-			
-					?>
-					</tbody>
-					</table>
-											 
-				</div>
-						
-				<?php
-				// We have displayed these, don't show them again later
-				$relatedtypes_shown[]=$rtype;
-				}
-			?>
-			</div><!-- End of RelatedResourceData -->
-			<?php
-			}
-		}    
     }
     
 ?><?php hook("extrafields2");?>

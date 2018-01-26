@@ -119,6 +119,7 @@ function delete_dash_tile($tile,$cascade=TRUE,$force=FALSE)
 		sql_query("DELETE FROM user_dash_tile WHERE dash_tile='".$tile."'");
 		sql_query("DELETE FROM usergroup_dash_tile WHERE dash_tile = '{$tile}'");
 		}
+	hook('after_delete_dash_tile', '', array($tile, $cascade , $force));
 	}
 
 /*
@@ -398,7 +399,7 @@ function get_default_dash($user_group_id = null, $edit_mode = false)
 				}
 			?>
 			href="<?php echo $link?>" <?php echo $newtab ? "target='_blank'" : "";?>
-			onClick="if(dragging){dragging=false;e.defaultPrevented;}" 
+			onClick="if(dragging){dragging=false;return false;}" 
 			class="HomePanel DashTile DashTileDraggable <?php echo $tile["allow_delete"]? "":"conftile";?>" 
 			id="tile<?php echo htmlspecialchars($tile["tile"]);?>"
 		>
@@ -439,10 +440,11 @@ function get_default_dash($user_group_id = null, $edit_mode = false)
 			}
 			var dragging=false;
 				jQuery(function() {
-					if(jQuery(window).width()<600 && jQuery(window).height()<600 && is_touch_device()) {
+					if(is_touch_device())
+						{
 						jQuery("#HomePanelContainer").prepend("<p><?php echo $lang["dashtilesmalldevice"];?></p>");
 						return false;
-					}
+						}
 				 	jQuery("#HomePanelContainer").sortable({
 				  	  items: ".DashTileDraggable",
 				  	  start: function(event,ui) {
@@ -509,7 +511,8 @@ function get_default_dash($user_group_id = null, $edit_mode = false)
  */
 function get_managed_dash()
 	{
-	global $baseurl,$baseurl_short,$lang,$anonymous_login,$username,$dash_tile_shadows, $anonymous_default_dash, $userref, $usergroup, $dash_tile_colour, $dash_tile_colour_options, $managed_home_dash;
+	global $baseurl,$baseurl_short,$lang,$anonymous_login,$username,$dash_tile_shadows, $anonymous_default_dash, $userref, $usergroup;
+    global $dash_tile_colour, $dash_tile_colour_options, $managed_home_dash, $help_modal;
 	#Build Tile Templates
 	if(checkPermission_anonymoususer() && !$anonymous_default_dash)
         {
@@ -569,8 +572,13 @@ function get_managed_dash()
                 }
                 ?>
 			href="<?php echo $link?>" <?php echo $newtab ? "target='_blank'" : "";?>
-			onClick="<?php echo (!$newtab ? 'return CentralSpaceLoad(this, true);' : ''); ?>"
-			class="HomePanel DashTile DashTileDraggable" 
+			onClick="<?php echo (!$newtab ? 'return ' . (($help_modal && strpos($link,'pages/help.php')!==false)?'ModalLoad(this,true);':'CentralSpaceLoad(this,true);') : ''); ?>"
+
+			<?php
+			# Check if tile is set to double width
+			$tlsize = (isset($buildstring['tlsize']) ? $buildstring['tlsize'] : '');
+			?>
+			class="HomePanel DashTile DashTileDraggable <?php echo ('double' == $tlsize ? 'DoubleWidthDashTile' : ''); ?>" 
 			id="tile<?php echo htmlspecialchars($tile["tile"]);?>"
 		>
 			<div id="contents_tile<?php echo htmlspecialchars($tile["tile"]);?>" class="HomePanelIN HomePanelDynamicDash <?php echo ($dash_tile_shadows)? "TileContentShadow":"";?>" style="<?php echo $tile_custom_style; ?>">
@@ -994,11 +1002,13 @@ function get_user_dash($user)
 
         $tile_custom_style = '';
 
+        $buildstring = explode('?', $tile['url']);
+        parse_str(str_replace('&amp;', '&', $buildstring[1]), $buildstring);
+
+        $tlsize = (isset($buildstring['tlsize']) ? $buildstring['tlsize'] : '');
+
         if($dash_tile_colour)
             {
-            $buildstring = explode('?', $tile['url']);
-            parse_str(str_replace('&amp;', '&', $buildstring[1]), $buildstring);
-
             if(isset($buildstring['tltype']) && allow_tile_colour_change($buildstring['tltype']) && isset($buildstring['tlstylecolour']))
                 {
                 $tile_custom_style .= get_tile_custom_style($buildstring);
@@ -1020,8 +1030,8 @@ function get_user_dash($user)
 				}
 			?>
 			href="<?php echo parse_dashtile_link($link)?>" <?php echo $newtab ? "target='_blank'" : "";?> 
-			onClick="if(dragging){dragging=false;e.defaultPrevented}<?php echo $newtab? "": "return " . ($help_modal && strpos($link,"pages/help.php")!==false?"ModalLoad(this,true);":"CentralSpaceLoad(this,true);");?>" 
-			class="HomePanel DashTile DashTileDraggable <?php echo ($tile['all_users']==1)? 'allUsers':'';?>"
+			onClick="if(dragging){dragging=false;return false;}<?php if ($tile["link"] != "") {echo $newtab? "": "return " . ($help_modal && strpos($link,"pages/help.php")!==false?"ModalLoad(this,true);":"CentralSpaceLoad(this,true);");} else {echo "return false;";}?>" 
+			class="HomePanel DashTile DashTileDraggable <?php echo ($tile['all_users']==1)? 'allUsers':'';?> <?php echo ('double' == $tlsize ? 'DoubleWidthDashTile' : ''); ?>"
 			tile="<?php echo $tile['tile']; ?>"
 			id="user_tile<?php echo htmlspecialchars($tile["user_tile"]);?>"
 		>
@@ -1066,8 +1076,9 @@ function get_user_dash($user)
 		}
 		var dragging=false;
 			jQuery(function() {
-				if(jQuery(window).width()<600 && jQuery(window).height()<600 && is_touch_device()) {
-						return false;
+				if(is_touch_device())
+					{
+					return false;
 					}				
 			 	jQuery("#HomePanelContainer").sortable({
 			  	  items: ".DashTileDraggable",
@@ -1326,7 +1337,7 @@ function render_dash_tile_colour_chooser($tile_style, $tile_colour)
         <?php
         }
         ?>
-            <label class="stdwidth"><?php echo $lang['colour']; ?></label>
+            <label><?php echo $lang['colour']; ?></label>
     <?php
     // Show either color picker OR a drop down selector
     if(0 === count($dash_tile_colour_options))
@@ -1462,3 +1473,23 @@ function delete_usergroup_dash_tile($tile,$group)
     sql_query("DELETE FROM usergroup_dash_tile WHERE usergroup = '{$group}' AND dash_tile = '{$tile}'");					
 	sql_query("DELETE ud.* FROM user_dash_tile ud LEFT JOIN user u ON ud.user=u.ref LEFT JOIN usergroup ug ON ug.ref=u.usergroup WHERE ud.dash_tile='" . $tile . "' and ug.ref='" . $group . "'");
 	}
+
+
+/**
+* Confirms whether a dash tile type allows for promoted resources
+* 
+* @param string $tile_type
+* 
+* @return boolean
+*/
+function allowPromotedResources($tile_type)
+    {
+    if('' === trim($tile_type))
+        {
+        return false;
+        }
+
+    $allowed_types = array('srch', 'fcthm');
+
+    return in_array($tile_type, $allowed_types);
+    }

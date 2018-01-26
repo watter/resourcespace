@@ -32,9 +32,7 @@ include "../../include/header.php";
     $all_field_info = get_fields_for_search_display(array_unique(array_merge(
         $sort_fields,
         $thumbs_display_fields,
-        $list_display_fields,
-        $xl_thumbs_display_fields,
-        $small_thumbs_display_fields))
+        $list_display_fields))
     );
 	
 	// Create an array for the archive states
@@ -131,10 +129,7 @@ include "../../include/header.php";
 
     // Default Display
     $default_display_array = array();
-    if($smallthumbs || $GLOBALS['default_display'] == 'smallthumbs')
-		{
-		$default_display_array['smallthumbs'] = $lang['smallthumbstitle'];
-		}
+
 	$default_display_array['thumbs'] = $lang['largethumbstitle'];
 	if($xlthumbs || $GLOBALS['default_display'] == 'xlthumbs')
 		{
@@ -167,8 +162,16 @@ include "../../include/header.php";
     $page_def[] = config_add_single_select('upload_then_edit', $lang['upload_sequence'], array(true => $lang['upload_first_then_set_metadata'], false => $lang['set_metadata_then_upload']), true, 300, '', true);
     $page_def[] = config_add_boolean_select('modal_default', $lang['userpreference_modal_default'], $enable_disable_options, 300, '', true);        
     $page_def[] = config_add_boolean_select('keyboard_navigation', $lang['userpreference_keyboard_navigation'], $enable_disable_options, 300, '', true);
+	
+	$page_def[] = config_add_boolean_select('byte_prefix_mode_decimal', $lang['byte_prefix_mode_decimal'], $enable_disable_options, 300, '', true);
+	
+	
     $page_def[] = config_add_html('</div>');
 
+	
+	
+	
+	
 
     // Email section, only show if user has got an email address
 	if ($useremail!="")

@@ -338,10 +338,18 @@ function get_config_options($user_id, array &$returned_options)
 *
 * @param int $user_id
 *
-* @return bool true
+* @return void
 */
 function process_config_options($user_id = null)
     {
+    global $user_preferences;
+
+    // If the user doesn't have the ability to set his/her own preferences, then don't load it either
+    if(!is_null($user_id) && !$user_preferences)
+        {
+        return;
+        }
+
     $config_options = array();
 
     if(get_config_options($user_id, $config_options))
@@ -360,7 +368,7 @@ function process_config_options($user_id = null)
             }
         }
 
-    return true;
+    return;
     }
 
 
@@ -472,8 +480,9 @@ function config_text_input($name, $label, $current, $password = false, $width = 
         <?php
         }
         ?>
+        <div class="clearerleft"></div>
     </div>
-    <div class="clearerleft"></div>
+
     <?php
     }
 
@@ -610,8 +619,9 @@ function config_colouroverride_input($name, $label, $current, $default, $title=n
                 });
             </script>
         </div>
-        </div>
         <div class="clearerleft"></div>
+        </div>
+        
     <?php
     }
 
@@ -681,8 +691,8 @@ function config_single_select($name, $label, $current, $choices, $usekeys = true
             }
         ?>
         </select>
+     <div class="clearerleft"></div>
     </div>
-    <div class="clearerleft"></div>
     <?php
     }
 
@@ -755,8 +765,8 @@ function config_boolean_select($name, $label, $current, $choices = '', $width = 
             <option value="1"<?php if($current == '1') { ?> selected<?php } ?>><?php echo $choices[1]; ?></option>
             <option value="0"<?php if($current == '0') { ?> selected<?php } ?>><?php echo $choices[0]; ?></option>
         </select>
+        <div class="clearerleft"></div>
     </div>
-    <div class="clearerleft"></div>
     <?php
     }
 
@@ -846,8 +856,9 @@ function config_checkbox_select($name, $label, $current, $choices, $usekeys=true
             ?>
             </tr>
         </table>
+        <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
+  
 <?php
     }
 
@@ -874,6 +885,75 @@ function config_add_checkbox_select($config_var, $label, $choices, $usekeys=true
 function config_add_colouroverride_input($config_var, $label='', $default='', $title='', $autosave=false, $on_change_js=null, $hidden=false)
     {
     return array('colouroverride_input', $config_var, $label, $default, $title, $autosave, $on_change_js, $hidden);
+    }
+    
+/**
+ * Return a data structure that will instruct the configuration page generator functions to
+ * add a single RS field-type select configuration variable to the setup page.
+ *
+ * @param string $config_var the name of the configuration variable to be added.
+ * @param string $label the user text displayed to label the select block. Usually a $lang string.
+ * @param integer $width the width of the input field in pixels. Default: 300.
+ * @param integer $rtype optional to specify a resource type to get fields for 
+ * @param integer array $ftypes an array of field types e.g. (4,6,10) will return only fields of a date type
+ */
+function config_add_single_ftype_select($config_var, $label, $width=300, $rtype=false, $ftypes=array(),$autosave=false)
+    {
+    return array('single_ftype_select', $config_var, $label, $width, $rtype, $ftypes,$autosave);
+    }
+    
+
+/**
+ * Generate an html single-select + options block for selecting one of the RS field types. The
+ * selected field type is posted as the value of the "ref" column of the selected field type.
+ *
+ * @param string $name the name of the select block. Usually the name of the config variable being set.
+ * @param string $label the user text displayed to label the select block. Usually a $lang string.
+ * @param integer $current the current value of the config variable being set
+ * @param integer $width the width of the input field in pixels. Default: 300.
+ */
+function config_single_ftype_select($name, $label, $current, $width=300, $rtype=false, $ftypes=array(), $autosave = false)
+    {
+    global $lang;
+	$fieldtypefilter="";
+	if(count($ftypes)>0)
+		{
+		$fieldtypefilter = " type in ('" . implode("','", $ftypes) . "')";
+		}
+		
+    if($rtype===false){
+    	$fields=sql_query('select * from resource_type_field ' .  (($fieldtypefilter=="")?'':' where ' . $fieldtypefilter) . ' order by title, name');
+    }
+    else{
+    	$fields=sql_query("select * from resource_type_field where resource_type='$rtype' " .  (($fieldtypefilter=="")?"":" and " . $fieldtypefilter) . "order by title, name");
+    }
+?>
+  <div class="Question">
+    <label for="<?php echo $name?>" title="<?php echo str_replace('%cvn', $name, $lang['plugins-configvar'])?>"><?php echo $label?></label>
+    
+     <?php
+    if($autosave)
+        {
+        ?>
+        <div class="AutoSaveStatus">
+            <span id="AutoSaveStatus-<?php echo $name; ?>" style="display:none;"></span>
+        </div>
+        <?php
+        }
+        ?>
+    <select name="<?php echo $name?>" id="<?php echo $name?>" style="width:<?php echo $width ?>px"
+    <?php if($autosave) { ?> onChange="AutoSaveConfigOption('<?php echo $name; ?>');"<?php } ?>>
+    <option value="" <?php echo (($current=="")?' selected':'') ?>></option>
+<?php
+    foreach($fields as $field)
+        {
+        echo '    <option value="'. $field['ref'] . '"' . (($current==$field['ref'])?' selected':'') . '>' . lang_or_i18n_get_translated($field['title'],'fieldtitle-') . '</option>';
+        }
+?>
+    </select>
+  <div class="clearerleft"></div>
+  </div>
+<?php
     }
 
 /**
@@ -1080,6 +1160,9 @@ function config_generate_html(array $page_def)
                 break;
             case 'multi_rtype_select':
                 config_multi_rtype_select($def[1], $def[2], $GLOBALS[$def[1]], $def[3], $def[4]);
+                break;
+            case 'single_ftype_select':
+                config_single_ftype_select($def[1], $def[2], $GLOBALS[$def[1]], $def[3], $def[4], $def[5],$def[6]);
                 break;
             }
         }

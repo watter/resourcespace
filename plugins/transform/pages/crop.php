@@ -80,12 +80,20 @@ $originalpath= get_resource_path($ref,true,'',false,$orig_ext);
 hook('transformcropbeforegetsize');
 
 // retrieve image sizes for original image and preview used for cropping
-$cropsizes = @getimagesize($previewpath);
-$origsizes = @getimagesize($originalpath);
-$cropwidth = $cropsizes[0];
+$cropsizes  = @getimagesize($previewpath);
+$origsizes  = @getimagesize($originalpath);
+$cropwidth  = $cropsizes[0];
 $cropheight = $cropsizes[1];
-$origwidth = $origsizes[0];
+$origwidth  = $origsizes[0];
 $origheight = $origsizes[1];
+
+// For SVGs it is hard to determine the size (at the moment (PHP7 - 29/12/2017) getimagesize does not support it)
+// Note: if getSvgSize() can extract the width and height then the crop will work as expected, otherwise the output will
+// be the full size (ie. not cropped)
+if($orig_ext == 'svg')
+    {
+    list($origwidth, $origheight) = getSvgSize($originalpath);
+    }
 
 // Get parameters from Manage slideshow page
 $manage_slideshow_action = getvalescaped('manage_slideshow_action', '');
@@ -137,19 +145,36 @@ if ($cropper_debug){
 	error_log("origwidth: $origwidth, width: $width / origheight = $origheight, height = $height, $xcoord / $ycoord");
 }
 
-if (($width == 0 && $height == 0 && ($new_width > 0||$new_height > 0)) ||  $cropperestricted) {
+if (($width == 0 && $height == 0 && ($new_width > 0||$new_height > 0)) ||  $cropperestricted)
+	{
 	// the user did not indicate a crop. presumably they are scaling
 	$verb = $lang['scaled'];
 	$crop_necessary = false;
-} else if (!$cropperestricted){
+	}
+else if (!$cropperestricted)
+	{
 	$crop_necessary = true;
 	$verb = $lang['cropped'];
 	// now we need to mathematically convert to the original size
 	$finalxcoord = round ((($origwidth  * $xcoord)/$cropwidth),0);
-	$finalycoord = round ((($origheight * $ycoord)/$cropheight),0);
-	$finalwidth  = round ((($origwidth  * $width)/$cropwidth),0);
-	$finalheight = round ((($origheight * $height)/$cropheight),0);
-}
+	$finalycoord = round ((($origheight * $ycoord)/$cropheight),0);	
+	
+	// Ensure that new ratio of crop matches that of the specified size or we may end up missing the target size
+	// If landscape crop, set the width first, then base the height on that
+	$desiredratio = $width / $height;
+	if($desiredratio > 1)
+		{
+		$finalwidth  = round ((($origwidth  * $width)/$cropwidth),0);
+		$finalheight = round ($finalwidth / $desiredratio,0);
+		}
+	else
+		{
+		$finalheight = round ((($origheight * $height)/$cropheight),0);
+		$finalwidth= round($finalheight *  $desiredratio,0);			
+		}
+	}
+	
+
 
 // determine output format
 // prefer what the user requested. If nothing, look for configured default. If nothing, use same as original
@@ -198,19 +223,24 @@ else
 	}
 
 // workaround for weird change in colorspace command in ImageMagick 6.7.5
-if (strtoupper($new_ext) == 'JPG' && $cropper_jpeg_rgb){
-       if ($imversion[0]<6 || ($imversion[0] == 6 &&  $imversion[1]<7) || ($imversion[0] == 6 && $imversion[1] == 7 && $imversion[2]<5)){
-
-                $colorspace1 = " -colorspace sRGB ";
-                $colorspace2 =  " -colorspace RGB ";
-        } else {
-                $colorspace1 = " -colorspace RGB ";
-                $colorspace2 =  " -colorspace sRGB ";
+if ($cropper_jpeg_rgb || ($cropper_srgb_option && getval("use_srgb","") != ""))
+    {
+    if ($imversion[0]<6 || ($imversion[0] == 6 &&  $imversion[1]<7) || ($imversion[0] == 6 && $imversion[1] == 7 && $imversion[2]<5))
+        {
+        $colorspace1 = " -colorspace sRGB ";
+        $colorspace2 =  " -colorspace RGB ";
         }
-} else {
-	$colorspace1 = '';
-	$colorspace2 = '';
-}
+    else
+        {
+        $colorspace1 = " -colorspace RGB ";
+        $colorspace2 =  " -colorspace sRGB ";
+        }
+    }
+else
+    {
+    $colorspace1 = '';
+    $colorspace2 = '';
+    }
 
 $commandprefix="";
 $keep_transparency=false;
@@ -227,7 +257,11 @@ else
     }
 
     
-
+$quality = getval("quality","",TRUE);
+if ($quality != "" && in_array($quality,$image_quality_presets) && in_array(strtoupper($new_ext) , array("PNG","JPG")))
+	{
+	$command .= " -quality " .  $quality . "% ";
+	}
 
 
 $resolution=getval("resolution","",TRUE);
@@ -325,15 +359,14 @@ $command .= $colorspace2;
 $command .= " \"$newpath\"";
 
 if ($cropper_debug && !$download && getval("slideshow","")==""){
-	error_log($command);
+	debug($command);
 	if (isset($_REQUEST['showcommand'])){
-		echo "$command";
+		echo htmlspecialchars($command);
 		delete_alternative_file($ref,$newfile);
 		exit;
 	}
 }
 
-// fixme -- do we need to trap for errors from imagemagick?
 $shell_result = run_command($command);
 if ($cropper_debug){
 	error_log("SHELL RESULT: $shell_result");
@@ -883,9 +916,35 @@ if(!$cropperestricted)
           </select>
           <?php } // end of if force_original_format ?></td>
       </tr>
-	  
-	  
-	  <?php
+	  	  
+	  <?php      
+      if($cropper_quality_select && count($image_quality_presets) > 0)
+        {?>
+        <tr>
+        <td style='text-align:right'><?php echo $lang['property-quality']; ?>: </td>
+        <td colspan='3'>
+          <select name='quality'>
+                <?php 
+                foreach ($image_quality_presets as $image_quality_preset) 
+                    {
+                    echo "<option value='" . htmlspecialchars($image_quality_preset) . "'>" . $lang["image_quality_" . htmlspecialchars($image_quality_preset)] . "&nbsp;</option>\n";
+                    }
+                    ?>
+          </select>
+        </td>
+        </tr>
+        <?php
+        }
+    
+     if (!$cropper_jpeg_rgb && $cropper_srgb_option)
+			{?>
+            <tr>
+                <td style='text-align:right'><?php echo $lang["cropper_use_srgb"]; ?>: </td>
+                <td><input type="checkbox" name='use_srgb' id='use_srgb' value="1" checked="checked"></td>
+            </tr>
+            <?php
+            }
+      
 	  if (count($cropper_resolutions)>0)
 			{?>
 		    <tr>
@@ -896,7 +955,7 @@ if(!$cropperestricted)
 					<?php 
 					foreach ($cropper_resolutions as $cropper_resolution)
 						{
-						echo "<option value='$cropper_resolution'>" . $cropper_resolution . "&nbsp;</option>\n";
+						echo "<option value='" . htmlspecialchars($cropper_resolution) . "'>" . htmlspecialchars($cropper_resolution) . "&nbsp;</option>\n";
 						}
 						?>
 			  </select>

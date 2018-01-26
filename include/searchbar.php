@@ -47,6 +47,7 @@ if(!isset($internal_share_access))
 
 # Load the basic search fields, so we know which to strip from the search string
 $fields=get_simple_search_fields();
+
 $simple_fields=array();
 for ($n=0;$n<count($fields);$n++)
 	{
@@ -86,6 +87,7 @@ for ($n=0;$n<count($keywords);$n++)
 			else {$set_fields[$s[0]]=$s[1];}
 			if (!in_array($s[0],$simple_fields)) {$simple[]=trim($keywords[$n]);$initial_tags[] =trim($keywords[$n]);}
             }
+            
         // Nodes search
         else if(strpos($keywords[$n], NODE_TOKEN_PREFIX) !== false)
             {                
@@ -96,24 +98,52 @@ for ($n=0;$n<count($keywords);$n++)
                 }
 
             $searched_nodes = array_unique($searched_nodes);
+            $simpletext_count = count($simple);
+            $initial_tag_count = count($initial_tags);
             foreach($searched_nodes as $searched_node)
                 {
                 $node = array();
-
                 if(!get_node($searched_node, $node))
                     {
                     continue;
                     }
-
                 $field_index = array_search($node['resource_type_field'], array_column($fields, 'ref'));
 
                 if(false === $field_index) // Node is not from a simple search field
-                    {
+                    {                        
                     $fieldsearchterm = rebuild_specific_field_search_from_node($node);
 					if(strpos(" ",$fieldsearchterm)!==false)
-						{ $fieldsearchterm = "\"" . $fieldsearchterm . "\"";}	
-					$simple[]=$fieldsearchterm;
-					$initial_tags[] = $fieldsearchterm;
+						{ $fieldsearchterm = "\"" . $fieldsearchterm . "\"";}
+                    if(!isset($all_fields))
+                        {
+                        $all_fields=get_resource_type_fields();
+                        }
+            
+                    $all_fields_index = array_search($node['resource_type_field'], array_column($all_fields, 'ref'));                        
+                    $field_name = $all_fields[$all_fields_index]["name"];
+                    if(isset($last_field_name) && $last_field_name == $field_name && (($all_fields[$all_fields_index]["type"] == FIELD_TYPE_CHECK_BOX_LIST && !$checkbox_and) ||  ($all_fields[$all_fields_index]["type"] == FIELD_TYPE_DYNAMIC_KEYWORDS_LIST && !$dynamic_keyword_and)))
+                        {
+                        // Append in order to construct the field:value1;value2 syntax used for an OR search in the same field
+                        $fieldsearchterm = substr($fieldsearchterm,strpos($fieldsearchterm,":")+1);
+                        if(!isset($simple[$simpletext_count]))
+                            {
+                            $simple[$simpletext_count] = "";
+                            }
+                        $simple[$simpletext_count] .= ";" . $fieldsearchterm;
+                        if(!isset($initial_tags[$initial_tag_count]))
+                            {
+                            $initial_tags[$initial_tag_count] = "";  
+                            }
+                        $initial_tags[$initial_tag_count] .= ";" . $fieldsearchterm;                          
+                        }
+					else
+                        {
+                        $simple[$simpletext_count] = $fieldsearchterm;
+                        $initial_tags[] = $fieldsearchterm;
+                        }
+                    
+                    // Store the field name so we can check for ORs on same field 
+                    $last_field_name = $field_name;
                     continue;
                     }
 
@@ -134,9 +164,8 @@ for ($n=0;$n<count($keywords);$n++)
 			}
 		}
 	}
-	
+    
 # Set the text search box to the stripped value.
-;
 $simple=array_unique($simple);
 $initial_tags=array_unique($initial_tags);
 $quicksearch=join(" ",trim_array($simple));
@@ -147,32 +176,8 @@ $found_month="";if (isset($set_fields["month"])) {$found_month=$set_fields["mont
 $found_day="";if (isset($set_fields["day"])) {$found_day=$set_fields["day"];}
 
 
-if ($display_user_rating_stars && $star_search){ ?>
-	<?php if (!hook("replacesearchbarstarjs")){?>
-	<script type="text/javascript">
 
-	function StarSearchRatingDisplay(rating,hiclass)
-		{
-		for (var n=1;n<=5;n++)
-			{
-			jQuery('#RatingStar-'+n).removeClass('StarEmpty');
-			jQuery('#RatingStar-'+n).removeClass('StarCurrent');
-			jQuery('#RatingStar-'+n).removeClass('StarSelect');
-			if (n<=rating)
-				{
-				jQuery('#RatingStar-'+n).addClass(hiclass);
-				}
-			else
-				{
-				jQuery('#RatingStar-'+n).addClass('StarEmpty');
-				}
-			}
-		}	
-
-	</script>
-	<?php } // end hook replacesearchbarstarjs ?>
-<?php } ?>
-
+?>
 <div id="SearchBox" <?php
     if(isset($slimheader) && $slimheader && isset($slimheader_fixed_position) && $slimheader_fixed_position)
         {
@@ -425,10 +430,6 @@ elseif($restypes=='')
         # Clear the standard fields
 		$searchbuttons .= "document.getElementById('ssearchbox').value='';" . $cleardate;
 
-        if($display_user_rating_stars && $star_search)
-            {
-            $searchbuttons .= "StarSearchRatingDisplay(0,'StarCurrent');document.getElementById('starsearch').value='';window['StarSearchRatingDone']=true;";
-            }
 
         if($resourceid_simple_search)
             {
@@ -730,22 +731,6 @@ elseif($restypes=='')
 				}     			
      			?>
 	
-	
-	    <?php if ($star_search && $display_user_rating_stars){?>
-		<?php if (!hook("replacesearchbarstars")){?>
-        <div class="SearchItem StarRatings"><?php echo $lang["starsminsearch"];?><br />
-        <input type="hidden" id="starsearch" name="starsearch" class="SearchWidth" value="<?php echo htmlspecialchars($starsearch);?>">
-                <?php if ($starsearch=="") {$starsearch=0;}?>           
-                <div  class="RatingStars" onMouseOut="StarSearchRatingDisplay(document.getElementById('starsearch').value,'StarCurrent');">&nbsp;<?php 
-                for ($z=1;$z<=5;$z++)
-                        {
-                        ?><a href="#" onMouseOver="StarSearchRatingDisplay(<?php echo $z?>,'StarSelect');" onClick="document.getElementById('starsearch').value=<?php echo $z?>;return false;"><span id="RatingStar-<?php echo $z?>" class="Star<?php echo ($z<=$starsearch?"Current":"Empty")?>">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></a><?php
-                        }
-                ?>
-                </div>
-        </div>
-        <?php } // end hook replacesearchbarstars?>
-        <?php } ?>
         
 
 	
@@ -875,8 +860,25 @@ elseif($restypes=='')
 <?php } ?>
 
 </div>
+<?php
+if ($simple_search_pills_view)
+    {
+    ?>
+    <script>
+    jQuery(document).ready(function ()
+        {
+        // For responsive mode we cannot use tag editor. For some reason it doesn't work. I think it has something to do with
+        // jQuery UI/ layout but not sure what exactly.
+        if(750 > jQuery(window).width())
+            {
+            jQuery('#ssearchbox').tagEditor('destroy');
+            }
+        });
+    </script>
+    <?php
+    }
 
-<?php hook("searchbarbottom");
+hook("searchbarbottom");
 
 # Restore original values that may have been affected by processsing so the search page still draws correctly with the current search.
 $restypes=$stored_restypes;

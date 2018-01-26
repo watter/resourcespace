@@ -147,6 +147,11 @@ $collection_download_tar_option=false; // Default to using tar downloads for all
 // Path to Python (programming language)
 // $python_path = '/usr/bin';
 
+// Path to FITS (File Information Tool Set - https://projects.iq.harvard.edu/fits)
+// Make sure user has write access as it needs to write the log file (./fits.log).
+// IMPORTANT: requires JAVA > 1.7
+// $fits_path = '/opt/fits-1.2.0';
+
 /* ---------------------------------------------------
 OTHER PARAMETERS
 
@@ -295,10 +300,13 @@ $slideshow_photo_delay = 5;
 /** Dash Config Options **/
 # Enable home dash functionality (on by default, recommended)
 $home_dash = true;
+
 # Define the available styles per type.
-$tile_styles['srch'] = array('thmbs', 'multi', 'blank');
-$tile_styles['ftxt'] = array('ftxt');
-$tile_styles['conf'] = array('blank');
+$tile_styles['srch']  = array('thmbs', 'multi', 'blank');
+$tile_styles['ftxt']  = array('ftxt');
+$tile_styles['conf']  = array('blank');
+$tile_styles['fcthm'] = array('thmbs', 'multi', 'blank');
+
 # Place the default dash (tiles set for all_users) on the home page for anonymous users with none of the drag 'n' drop functionality.
 $anonymous_default_dash=true;
 # use shadows on all tile content (Built in support for transparent tiles)
@@ -359,8 +367,7 @@ $dash_tile_colour_options = array();
  */ 
 
 
-# Optional 'quota size' for allocation of a set amount of disk space to this application. Value is in GB.
-# Note: Unix systems only.
+# Optional 'quota size' for allocation of a set amount of disk space to this application. Value is in GB (note decimal, not binary, so 1000 multiples).
 # $disksize=150;
 
 # Disk Usage Warnings - require running check_disk_usage.php
@@ -447,6 +454,11 @@ $filename_field=51;
 # If using imagemagick, should colour profiles be preserved? (for larger sizes only - above 'scr')
 $imagemagick_preserve_profiles=false;
 $imagemagick_quality=90; # JPEG quality (0=worst quality/lowest filesize, 100=best quality/highest filesize)
+
+# Preset quality settings. Used by transform plugin to allow user to select desired from a range of preset quality setting.
+# If adding extra quality settings, an accompanying $lang setting must be set e.g. in a plugin language file or using site text (Manage content)
+# e.g. $lang['image_quality_10'] = "";
+$image_quality_presets = array(100,75,50,25,1);
 
 # Allow unique quality settings for each preview size. This will use $imagemagick_quality as a default setting.
 # If you want to adjust the quality settings for internal previews you must also set $internal_preview_sizes_editable=true
@@ -585,7 +597,7 @@ the user to get an idea of what the video is about
 
 Note: Set to 0 to disable this feature
 */
-$ffmpeg_snapshot_frames = 12;
+$ffmpeg_snapshot_frames = 20;
 
 # $ffmpeg_command_prefix - Ability to add prefix to command when calling ffmpeg 
 # Example for use on Linux using nice to avoid slowing down the server
@@ -594,7 +606,7 @@ $ffmpeg_snapshot_frames = 12;
 # If uploaded file is in the preview format already, should we transcode it anyway?
 # Note this is now ON by default as of switching to MP4 previews, because it's likely that uploaded MP4 files will need a lower bitrate preview and
 # were not intended to be the actual preview themselves.
-$ffmpeg_preview_force=false;
+$ffmpeg_preview_force = true;
 
 # Option to always try and play the original file instead of preview - useful if recent change to $ffmpeg_preview_force doesn't suit e.g. if all users are
 # on internal network and want to see HQ video
@@ -632,6 +644,9 @@ $ffmpeg_use_qscale = true;
 # $ffmpeg_alternatives[1]["params"]="-s wvga -aspect 16:9 -b 2500k -deinterlace -ab 160k -acodec mp3 -ac 2";
 # $ffmpeg_alternatives[1]["lines_min"]=480;
 # $ffmpeg_alternatives[1]["alt_type"]='mywebversion';
+
+# when using $originals_separate_storage=true, store $ffmpeg_alternatives with previews?
+$originals_separate_storage_ffmpegalts_as_previews=false;
 
 # To be able to run certain actions asyncronus (eg. preview transcoding), define the path to php:
 # $php_path="/usr/bin";
@@ -892,7 +907,7 @@ $user_purge=true;
 # List of active plugins.
 # Note that multiple plugins must be specified within array() as follows:
 # $plugins=array("loader","rss","messaging","googledisplay"); 
-$plugins = array('transform', 'rse_version');
+$plugins = array('transform', 'rse_version', 'lightbox_preview', 'rse_search_notifications');
 
 # Uncomment and set the next line to allow anonymous access. 
 # You must set this to the USERNAME of the USER who will represent all your anonymous users
@@ -937,7 +952,7 @@ $contact_sheet_resource=false;
 # Ajax previews in contact sheet configuration. 
 $contact_sheet_previews=true;
 # Ajax previews in contact sheet, preview image size in pixels. 
-$contact_sheet_preview_size="250x250";
+$contact_sheet_preview_size="500x500";
 # Select a contact sheet font. Default choices are 
 # helvetica,times,courier (standard) and dejavusanscondensed for more Unicode support (but embedding/subsetting makes it slower).
 # There are also several other fonts included in the tcpdf lib (but not ResourceSpace), which provide unicode support
@@ -1605,7 +1620,7 @@ $global_permissions="";
 # Global permissions
 # Permissions that will be removed from all user group permissions
 # Useful for temporarily disabling permissions globally, e.g. to make the system readonly during maintenance.
-# Suggested setting for a 'read only' mode: $global_permissions_mask="a,t,c,d,e0,e1,e2,e-1,e-2,i,n,h";
+# Suggested setting for a 'read only' mode: $global_permissions_mask="a,t,c,d,e0,e1,e2,e-1,e-2,i,n,h,q";
 $global_permissions_mask="";
 
 # User account application - auto creation
@@ -1693,7 +1708,8 @@ $thumbs_display_extended_fields=array();
 	$search_results_title_wordwrap=100; // Force breaking up of very large titles so they wrap to multiple lines (useful when using multi line titles with $search_result_title_height). By default this is set very high so that breaking doesn't occur. If you use titles that have large unbroken words (e.g. filenames with no spaces) then it may be useful to set this value to something lower, e.g. 20
 	
 # Enable extra large thumbnails option for search screen
-$xlthumbs=true;
+$xlthumbs=false;
+
 # Extra Large Display Fields:  array of fields to display on the xlarge thumbnail view.
 $xl_thumbs_display_fields=array(8);
 # array of defined xl_thumbs_display_fields to apply CSS modifications to (via $xl_search_results_title_wordwrap, $xl_search_results_title_height, $xl_search_results_title_trim)
@@ -1701,16 +1717,8 @@ $xl_thumbs_display_extended_fields=array();
 	# $xl_search_result_title_height=26;
 	$xl_search_results_title_trim=60;
 	$xl_search_results_title_wordwrap=100;
-	
-# Enable small thumbnails option for search screen
-$smallthumbs=true;	
-# Small Thumbs Display Fields: array of fields to display on the small thumbnail view.
-$small_thumbs_display_fields=array();
-# array of defined small_thumbs_display_fields to apply CSS modifications to ($small_search_results_title_wordwrap, $small_search_results_title_height, $small_search_results_title_trim)
-$small_thumbs_display_extended_fields=array();
-	# $small_search_result_title_height=26;
-	$small_search_results_title_trim=30;
-	$small_search_results_title_wordwrap=100;
+
+
 
 # Enable list view option for search screen
 $searchlist=true;
@@ -1938,6 +1946,9 @@ $themes_column_sorting=false; // only works with themes_category_split_pages
 $themes_date_column=false;
 $themes_ref_column=false;
 
+// Enable to have a background image when $themes_simple_view is enabled
+$themes_show_background_image = false;
+
 # Ask the user the intended usage when downloading
 $download_usage=false;
 $download_usage_options=array("Press","Print","Web","TV","Other");
@@ -2071,8 +2082,16 @@ $paypal_url="https://www.paypal.com/cgi-bin/webscr";
 # StaticSync (staticsync.php)
 # The ability to synchronise ResourceSpace with a separate and stand-alone filestore.
 # ------------------------------------------------------------------------------------------------------------------
-$syncdir="/var/www/r2000/accounted"; # The sync folder
+$syncdir="/dummy/path/to/syncfolder"; # The sync folder
 $nogo="[folder1]"; # A list of folders to ignore within the sign folder.
+
+/*
+Allow the system to specify the exact folders under the sync directory that need to be synced/ingested in ResourceSpace.
+Note: When using $staticsync_whitelist_folders and $nogo configs together, ResourceSpace is going to first check the
+folder is in the $staticsync_whitelist_folders folders and then look in the $nogo folders.
+*/
+$staticsync_whitelist_folders = array();
+
 # Maximum number of files to process per execution of staticsync.php
 $staticsync_max_files = 10000;
 $staticsync_autotheme=true; # Automatically create themes based on the first and second levels of the sync folder structure.
@@ -2090,7 +2109,10 @@ $staticsync_extension_mapping[4]=array("flv");
 # $staticsync_filepath_to_field=100;
 # Append multiple mapped values instead of overwritting? This will use the same appending methods used when editing fields. Not used on dropdown, date, category tree, datetime, or radio buttons
 $staticsync_extension_mapping_append_values=true;
+# Uncomment and set the next line to specify specific fields for $staticsync_extension_mapping_append_values
+#$staticsync_extension_mapping_append_values_fields=array();
 # Should the generated resource title include the sync folder path?
+# This will not be used if $view_title_field is set to th same field as $filename_field.
 $staticsync_title_includes_path=true;
 # Should the sync'd resource files be 'ingested' i.e. moved into ResourceSpace's own filestore structure?
 # In this scenario, the sync'd folder merely acts as an upload mechanism. If path to metadata mapping is used then this allows metadata to be extracted based on the file's location.
@@ -2209,6 +2231,9 @@ $hide_uploadertryother = false;
 # Files with these extensions will be passed to unoconv (if enabled above) for conversion to PDF and auto thumb-preview generation.
 # Default list taken from http://svn.rpmforge.net/svn/trunk/tools/unoconv/docs/formats.txt
 $unoconv_extensions=array("ods","xls","doc","docx","odt","odp","html","rtf","txt","ppt","pptx","sxw","sdw","html","psw","rtf","sdw","pdb","bib","txt","ltx","sdd","sda","odg","sdc","potx","key");
+
+# Set path to Libre/OpenOffic's packaged python (required for Windows only).
+# $unoconv_python_path='';
 
 # Uncomment to set a point in time where collections are considered 'active' and appear in the drop-down. 
 # This is based on creation date for now. Older collections are effectively 'archived', but accessible through Manage My Collections.
@@ -2365,6 +2390,9 @@ $debug_log=false;
 # The ability to set that a different field should be used for 'title' for metadata templates, so that the original title field can still be used for template data
 # $metadata_template_title_field=10;
 
+// Ability to default metadata templates to a particular resource ID
+$metadata_template_default_option = 0;
+
 # enable a list of collections that a resource belongs to, on the view page
 $view_resource_collections=false;
 
@@ -2398,8 +2426,6 @@ $preview_all_hide_collections=true;
 # Don't display the link to toggle thumbnails in collection frame
 $disable_collection_toggle=false;
 
-# Display User Rating Stars in search views (a popularity column in list view)
-$display_user_rating_stars=false;
 # Allow each user only one rating per resource (can be edited). Note this will remove all accumlated ratings/weighting on newly rated items.
 $user_rating_only_once = true;
 # if user_rating_only_once, allow a log view of user's ratings (link is in the rating count on the View page):
@@ -2417,7 +2443,7 @@ $list_recipients=false;
 $wildcard_expand_limit=50;
 
 # Should *all* manually entered keywords (e.g. basic search and 'all fields' search on advanced search) be treated as wildcards?
-# E.g. "cat" will always match "catch", "catalogue", "catagory" with no need for an asterisk.
+# E.g. "cat" will always match "catch", "catalogue", "category" with no need for an asterisk.
 # WARNING - this option could cause search performance issues due to the hugely expanded searches that will be performed.
 # It will also cause some other features to be disabled: related keywords and quoted string support
 $wildcard_always_applied=false;
@@ -2490,9 +2516,6 @@ $psd_transparency_checkerboard=false;
 // checkerboard for gif and png with transparency
 $transparency_background = "gfx/images/transparency.gif";
 
-# Search for a minimum number of stars in Simple search/Advanaced Search (requires $$display_user_rating_stars)
-$star_search=false;
-
 # Omit archived resources from get_smart_themes (so if all resources are archived, the header won't show)
 # Generally it's not possible to check for the existence of results based on permissions,
 # but in the case of archived files, an extra join can help narrow the smart theme results to active resources.
@@ -2550,8 +2573,7 @@ $display_swf_xlarge_view=false;
 $mp3_player_thumbs_view=false;
 # show flv player in thumbs view 
 $video_player_thumbs_view=false;
-# show flv player in small thumbs view 
-$video_player_small_thumbs_view=false;
+
 
 # use an ffmpeg alternative for search preview playback
 $video_player_thumbs_view_alt=false;
@@ -2718,7 +2740,7 @@ $keyboard_navigation_close=27;
 $keyboard_scroll_jump=false;
 
 # How long until the Loading popup appears during an ajax request (milliseconds)
-$ajax_loading_timer=1500;
+$ajax_loading_timer=500;
 
 #Option for downloaded filename to be just <resource id>.extension, without indicating size or whether an alternative file. Will override $original_filenames_when_downloading which is set as default
 $download_filename_id_only = false;
@@ -2947,7 +2969,11 @@ $embedded_data_user_select=false;
 
 # Option to show related resources of specified resource types in a table alongside resource data. Thes resource types will not then be shown in the usual related resources area.
 # $related_type_show_with_data=array(3,4);
-# Additonal option to show a link for those with edit access allowing upload of new related resources. The resource type will then be automatically selected for the upload
+
+# Option to show the specified resource types as thumbnails if in $related_type_show_with_data array
+#$related_type_thumbnail_view = array(3);
+
+# Additional option to show a link for those with edit access allowing upload of new related resources. The resource type will then be automatically selected for the upload
 $related_type_upload_link=true;
 
 # Array of preview sizes to always create. This is especially helpful if your preview size is small than the "thm" size.
@@ -2981,7 +3007,7 @@ $remove_resources_link_on_collection_bar = TRUE;
 # Show group filter and user search at top of team_user.php
 $team_user_filter_top=false;
 
-# Stemming support - at this stage, experimental. Indexes stems of words only, so plural / singular (etc) forms of keywords are indexed as if they are equivalent. Requires a full reindex.
+# Stemming support. Indexes stems of words only, so plural / singular (etc) forms of keywords are indexed as if they are equivalent. Requires a full reindex.
 $stemming=false;
 
 # Initialize array for classes to be added to <body> element
@@ -2998,9 +3024,6 @@ $body_classes = array();
 # downloaded the resource in the last X days will be sent an email notifying them that there has been a change with a link to the resource view page
 # Set to 0 to disable this functionality;
 $notify_on_resource_change_days=0;
-
-# Allow passwords to be emailed directly to users. Settign this to true is a security risk so should be used with caution.
-$allow_password_email=false;
 
 # Do not show any notification text if a password reset attempt fails to find a valid user. Setting this to false means potential hackers can discover valid email addresses
 $hide_failed_reset_text=true;
@@ -3242,12 +3265,20 @@ $retina_mode=false;
 $xframe_options = "SAMEORIGIN";
 
 
-# FSTemplate - File System Template. Allows a system to contain an initial batch of resources that are stored elsewhere and read only.
-# Used by Montala for the ResourceSpace trial account templates, so each templated installation doesn't need to completely copy all the sample assets.
-$fstemplate_alt_threshold=0; # Applies to resource IDs BELOW this number only. Set the system so the user created resources start at 1000.
-$fstemplate_alt_storagedir=""; # Alternative filestore location for the sample files. The location of the template installation.
+/*
+FSTemplate - File System Template. Allows a system to contain an initial batch of resources that are stored elsewhere 
+and read only.
+Used by Montala for the ResourceSpace trial account templates, so each templated installation doesn't need to completely
+copy all the sample assets.
+*/
+# Applies to resource IDs BELOW this number only. Set the system so the user created resources start at 1000.
+# IMPORTANT: once you've set up the $fstemplate_alt_threshold, run the following query: "alter table resource auto_increment = $fstemplate_alt_threshold"
+$fstemplate_alt_threshold=0;
+# Alternative filestore location for the sample files. The location of the template installation.
+$fstemplate_alt_storagedir="";
 $fstemplate_alt_storageurl="";
-$fstemplate_alt_scramblekey=""; # The scramble key used by the template installation, so paths must be scrambled using this instead for the sample images.
+# The scramble key used by the template installation, so paths must be scrambled using this instead for the sample images.
+$fstemplate_alt_scramblekey="";
 
 # Ability to switch off responsive on UI
 $responsive_ui = true;
@@ -3279,14 +3310,16 @@ the extension of the file.
 */
 $resource_type_extension_mapping_default = 1;
 $resource_type_extension_mapping         = array(
-    2 => array('pdf', 'doc', 'docx', 'epub', 'ppt', 'pptx', 'odt', 'ods', 'tpl'),
-    3 => array('mov', '3gp', 'avi', 'mpg', 'mp4', 'flv'),
+    2 => array('pdf', 'doc', 'docx', 'epub', 'ppt', 'pptx', 'odt', 'ods', 'tpl', 'ott' , 'rtf' , 'txt' , 'xml'),
+    3 => array('mov', '3gp', 'avi', 'mpg', 'mp4', 'flv', 'wmv'),
     4 => array('flac', 'mp3', '3ga', 'cda', 'rec', 'aa', 'au', 'mp4a', 'wav', 'aac', 'ogg'),
 );
 
 # New mode that means the upload goes first, then the users edit and approve resources moving them to the correct stage.
 $upload_then_edit=false;
 
+# Option to allow users to 'lock' metadata fields in upload_then_edit_mode
+$upload_review_lock_metadata = false;
 
 #######################################
 ########################## Annotations:
@@ -3341,6 +3374,7 @@ $facial_recognition_tag_field = null;
 
 // Physical file path to FaceRecognizer model state(s) and data
 // Security note: it is best to place it outside of web root
+// IMPORTANT: ResourceSpace will not create this folder if it doesn't exist
 $facial_recognition_face_recognizer_models_location = '';
 #######################################
 #######################################
@@ -3366,4 +3400,28 @@ $facial_recognition_face_recognizer_models_location = '';
 # $remote_config_url="http://remote-config.mycompany.com";
 # $remote_config_key=""; # The baseurl will be hashed with this key and passed as an &sign= value.
 
+// Option to allow administrators to change the value of the 'contributed by' user for a resource.
+$edit_contributed_by = false;
 
+# Option to use decimal (KB, MB, GB in multiples of 1000) vs. binary (KiB, MiB, GiB, TiB in multiples of 1024)
+$byte_prefix_mode_decimal=true;
+
+# Option to force users to select a resource type at upload
+$resource_type_force_selection=false;
+
+// Facebook App ID
+$facebook_app_id = '133361117324579'; # Standard ResourceSpace app
+
+/*
+Set the suffix used to identify alternatives for a particular resource when both the original file and its alternatives
+are being uploaded in a batch using the UI (plupload)
+IMPORTANT: This will only work if the user uploads all files (resource and its alternatives) into the same 
+collection.
+Please make sure to only upload one resource and its original alternatives otherwise it will not work as expected
+*/
+$upload_alternatives_suffix = '';
+
+// Set this to true if changing the scramble key. If switching from a non-null key set the $scramble_key_old variable
+// Run pages/tools/xfer_srambled.php to move the files, but any ommitted should be detected by get_resource_path if this is set.
+$migrating_scrambled = false;
+// $scramble_key_old = "";

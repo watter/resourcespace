@@ -208,30 +208,25 @@ if ($submitted != "")
 	$delindex=0;
 	foreach($tempfoldercontents as $objectindex => $object)
 		{
+		$tmpfilename = $object->getFilename();
 		if ($object->isDir())
 			{
-			if(substr($object->getFilename(),0,strlen("rs_" . $userref . "_"))=="rs_" . $userref . "_" && time()-$object->getMTime()>24*60*60) 
+			if((substr($tmpfilename,0,strlen("rs_" . $userref . "_"))=="rs_" . $userref . "_"  || substr($tmpfilename,0,3)== "Col") && time()-$object->getMTime()>24*60*60) 
 			   {
-			   debug ("Collection download - found old temp directory: " . $object->getFilename() .  "  age (minutes): " . (time()-$object->getMTime())/60);
+			   debug ("Collection download - found old temp directory: " . $tmpfilename .  "  age (minutes): " . (time()-$object->getMTime())/60);
 			   // This directory belongs to the user and is older than a day, delete it
-			   $folderstodelete[]=$tempdirbase . DIRECTORY_SEPARATOR . $object->getFilename();				
+			   $folderstodelete[]=$tempdirbase . DIRECTORY_SEPARATOR . $tmpfilename;				
 			   }
 			}
 		elseif($purge_temp_folder_age!=0 && time()-$object->getMTime()>$purge_temp_folder_age*24*60*60)
 			{
-			unlink($tempdirbase . DIRECTORY_SEPARATOR . $object->getFilename()); 				
+			unlink($tempdirbase . DIRECTORY_SEPARATOR . $tmpfilename); 				
 			}
 		
 		}
 	foreach ($folderstodelete as $foldertodelete)
 		{
 		debug ("Collection download - deleting directory " . $foldertodelete);
-		$delfiles = array_diff(scandir($foldertodelete), array('.','..')); 
-		foreach ($delfiles as $delfile)
-			{
-			//unlink($foldertodelete . DIRECTORY_SEPARATOR . $delfile); 
-			} 
-					    
 		@rcRmdir($foldertodelete);
 		}
 	$progress_file=$usertempdir . "/progress_file.txt";
@@ -590,7 +585,12 @@ if ($submitted != "")
         $fh = fopen($textfile, 'w') or die("can't open file");
         fwrite($fh, $text);
         fclose($fh);
-		if ($use_zip_extension){
+		if($collection_download_tar)
+			{
+			debug("collection_download adding symlink: " . $p . " - " . $usertempdir . DIRECTORY_SEPARATOR . $filename);
+			@symlink($textfile, $usertempdir . DIRECTORY_SEPARATOR . $collection . "-" . safe_file_name(i18n_get_collection_name($collectiondata)) . $sizetext . '.txt');
+			}
+		elseif ($use_zip_extension){
 			$zip->addFile($textfile,$collection . "-" . safe_file_name(i18n_get_collection_name($collectiondata)) . $sizetext . ".txt");
         } else {
 			$path.=$textfile . "\r\n";	
@@ -675,7 +675,7 @@ if ($submitted != "")
 		header("Content-type: application/tar");
 		header("Content-disposition: attachment; filename=" . $filename );
 		debug("collection_download tar command: tar -cv -C " . $usertempdir . " . ");
-		passthru("tar -cv --dereference -C " . $usertempdir  . " . ");
+		passthru("find " . $usertempdir . ' -printf "%P\n" | tar -cv --no-recursion --dereference -C ' . $usertempdir . " -T -");
 		exit();
         }
     else if ($archiver)
@@ -757,7 +757,10 @@ include "../include/header.php";
 }?>
 
 <h1><?php echo $lang["downloadzip"]?></h1>
-
+<?php
+$intro=text("introtext");
+if ($intro!="") { ?><p><?php echo $intro ?></p><?php } 
+?>
 <script>
 
 function ajax_download()
@@ -960,7 +963,7 @@ if ($archiver && count($collection_download_settings)>1)
         <option value="<?php echo htmlspecialchars($key) ?>"><?php echo lang_or_i18n_get_translated($value["name"],"archive-") ?></option><?php
         } ?>
     </select>
-    <div class="clearerleft"></div></div><br>
+    <div class="clearerleft"></div></div><br />
     </div><?php
     }	?>
 
@@ -968,8 +971,8 @@ if ($archiver && count($collection_download_settings)>1)
 <div class="Question">
 	<label for="include_csv_file"><?php echo $lang['csvAddMetadataCSVToArchive']; ?></label>
 	<input type="checkbox" id="include_csv_file" name="include_csv_file" value="yes">
+	<div class="clearerleft"></div>
 </div>
-<div class="clearerleft"></div>
 
 <?php
 if($exiftool_write && !$force_exiftool_write_metadata)
@@ -979,33 +982,34 @@ if($exiftool_write && !$force_exiftool_write_metadata)
     <div class="Question" id="exiftool_question" <?php if($collection_download_tar_option){echo "style=\"display:none;\"";} ?>>
         <label for="write_metadata_on_download"><?php echo $lang['collection_download__write_metadata_on_download_label']; ?></label>
         <input type="checkbox" id="write_metadata_on_download" name="write_metadata_on_download" value="yes" >
+		<div class="clearerleft"></div>
     </div>
-    <div class="clearerleft"></div>
     <?php
     }
 ?>
 	
 <div class="Question"  <?php if(!$collection_download_tar){echo "style=\"display:none;\"";} ?>>
-<label for="tardownload"><?php echo $lang["collection_download_format"]?></label>
-<div class="tickset">
-<select name="tardownload" class="stdwidth" id="tardownload" onChange="if(jQuery(this).val()=='off'){ajax_on=true;jQuery('#exiftool_question').slideDown();jQuery('#archivesettings_question').slideDown();}else{ajax_on=false;jQuery('#exiftool_question').slideUp();jQuery('#archivesettings_question').slideUp();}">
-	   <option value="off"><?php echo $lang["collection_download_no_tar"]; ?></option>
-	   <option value="on" <?php if($collection_download_tar_option) {echo "selected";} ?> ><?php echo$lang["collection_download_use_tar"]; ?></option>	   
-</select>
-
-<div class="clearerleft"></div></div><br>
-<div class="clearerleft"></div>
-<label for="tarinfo"></label>
-<div class="Fixed"><?php echo $lang["collection_download_tar_info"]  . "<br />" . $lang["collection_download_tar_applink"]?></div>
+	<label for="tardownload"><?php echo $lang["collection_download_format"]?></label>
+	<div class="tickset">
+	<select name="tardownload" class="stdwidth" id="tardownload" onChange="if(jQuery(this).val()=='off'){ajax_on=true;jQuery('#exiftool_question').slideDown();jQuery('#archivesettings_question').slideDown();}else{ajax_on=false;jQuery('#exiftool_question').slideUp();jQuery('#archivesettings_question').slideUp();}">
+		   <option value="off"><?php echo $lang["collection_download_no_tar"]; ?></option>
+		   <option value="on" <?php if($collection_download_tar_option) {echo "selected";} ?> ><?php echo$lang["collection_download_use_tar"]; ?></option>	   
+	</select>
+	
+	<div class="clearerleft"></div></div><br />
+	<div class="clearerleft"></div>
+	<label for="tarinfo"></label>
+	<div class="Fixed"><?php echo $lang["collection_download_tar_info"]  . "<br />" . $lang["collection_download_tar_applink"]?></div>
+	
+	<div class="clearerleft"></div>
 </div>
-<div class="clearerleft"></div>
 	
 <div class="QuestionSubmit" id="downloadbuttondiv"> 
-<label for="download"> </label>
-<script>var ajax_on=<?php echo ($collection_download_tar)?"true":"false"; ?>;</script>
-<input type="submit" onclick="if(ajax_on){ajax_download();return false;}" value="&nbsp;&nbsp;<?php echo $lang["action-download"]?>&nbsp;&nbsp;" />
-
-<div class="clearerleft"> </div>
+	<label for="download"> </label>
+	<script>var ajax_on=<?php echo ($collection_download_tar)?"true":"false"; ?>;</script>
+	<input type="submit" onclick="if(ajax_on){ajax_download();return false;}" value="&nbsp;&nbsp;<?php echo $lang["action-download"]?>&nbsp;&nbsp;" />
+	
+	<div class="clearerleft"> </div>
 </div>
 
 <div id="progress"></div>

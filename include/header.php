@@ -25,21 +25,7 @@ if(!isset($thumbs) && ($pagename!="login") && ($pagename!="user_password") && ($
         rs_setcookie("thumbs", $thumbs, 1000,"","",false,false);
         }
     }
-// blank starsearch cookie in case $star_search was turned off
-rs_setcookie('starsearch', '');
-if ($display_user_rating_stars && $star_search)
-    {
-	# if seardch is not a special search (ie. !recent), use starsearchvalue.
-	if (getval("search","")!="" && strpos(getval("search",""),"!")!==false)
-		{
-		$starsearch="";
-		}
-	else
-		{
-		$starsearch=getvalescaped("starsearch","");	
-		rs_setcookie('starsearch', $starsearch);
-	    }
-	}
+
 	
 ?><!DOCTYPE html>
 <html lang="<?php echo $language ?>">	
@@ -141,7 +127,7 @@ if ($enable_ckeditor){?>
 	<script type="text/javascript" src="<?php echo $baseurl_short;?>lib/plupload_2.1.8/jquery.plupload.queue/jquery.plupload.queue.min.js?<?php echo $css_reload_key;?>"></script>
 <?php } ?>
 <?php
-if($videojs && ($pagename=='search' && $keyboard_navigation_video_search) || ($pagename=='view' && $keyboard_navigation_video_view) || (($pagename=='preview' || $pagename=='preview_all') && $keyboard_navigation_video_preview))
+if($videojs && ($keyboard_navigation_video_search || $keyboard_navigation_video_view || $keyboard_navigation_video_preview))
     {
     ?>
 	<script type="text/javascript" src="<?php echo $baseurl_short?>lib/js/videojs-extras.js?<?php echo $css_reload_key?>"></script>
@@ -264,7 +250,7 @@ endif; # !hook("customhtmlheader")
 if(!hook("customloadinggraphic"))
 	{
 	?>
-	<div id="LoadingBox"><?php echo $lang["pleasewait"] ?>&nbsp;<i aria-hidden="true" class="fa fa-spinner fa-pulse fa-2x fa-fw"></i></div>
+	<div id="LoadingBox"><i aria-hidden="true" class="fa fa-circle-o-notch fa-spin fa-3x fa-fw"></i></div>
 	<?php
 	}
 ?>
@@ -433,12 +419,21 @@ else
 	{
 	if (!hook("replaceheadernav1")) {
 	?>
-	<ul>
-	<?php if (!hook("replaceheaderfullnamelink")){?>
-	<li><a href="<?php echo $baseurl?>/pages/user/user_home.php"  onClick="ModalClose();return ModalLoad(this,true,true,'right');"><i aria-hidden="true" class="fa fa-user fa-fw"></i>&nbsp;<?php echo htmlspecialchars(($userfullname=="" ? $username : $userfullname)) ?></a>
-		<span style="display: none;" class="MessageTotalCountPill Pill"></span>
-		<div id="MessageContainer" style="position:absolute; "></div>
-	<?php } ?></li>
+    <ul>
+    <?php
+    if(!hook('replaceheaderfullnamelink'))
+        {
+        ?>
+        <li>
+            <a href="<?php echo $baseurl; ?>/pages/user/user_home.php" onClick="ModalClose(); return ModalLoad(this, true, true, 'right');">
+                <i aria-hidden="true" class="fa fa-user fa-fw"></i>&nbsp;<?php echo htmlspecialchars(($userfullname=="" ? $username : $userfullname)) ?>
+            </a>
+            <span class="MessageTotalCountPill Pill" style="display: none;"></span>
+            <div id="MessageContainer" style="position:absolute; "></div>
+        <?php
+        }
+        ?>
+        </li>
 	
 	<!-- Team centre link -->
 	<?php if (checkperm("t")) { ?><li><a href="<?php echo $baseurl?>/pages/team/team_home.php" onClick="ModalClose();return ModalLoad(this,true,true,'right');"><i aria-hidden="true" class="fa fa-bars fa-fw"></i>&nbsp;<?php echo $lang["teamcentre"]?></a>
@@ -493,7 +488,17 @@ include (dirname(__FILE__) . "/header_links.php");
 
 <?php
 # Include simple search sidebar?
-$omit_searchbar_pages=array("terms","index","preview_all","search_advanced","preview","admin_header","login");
+$omit_searchbar_pages = array(
+    'terms',
+    'index',
+    'preview_all',
+    'search_advanced',
+    'preview',
+    'admin_header',
+    'login',
+    'user_request',
+    'user_password'
+);
 $modified_omit_searchbar_pages=hook("modifyomitsearchbarpages");
 if ($modified_omit_searchbar_pages){$omit_searchbar_pages=$modified_omit_searchbar_pages;}
 	
@@ -535,17 +540,20 @@ hook("afterheader");
 } // end if !ajax
 
 // Update header links to add a class that indicates current location
+// We parse URL for systems that are one level deep under web root
 $parsed_url = parse_url($baseurl);
 
 $scheme = @$parsed_url['scheme'];
-$host = @$parsed_url['host'];
-$port = @$parsed_url['port'];
+$host   = @$parsed_url['host'];
+$port   = (isset($parsed_url['port']) ? ":{$parsed_url['port']}" : "");
+
+$activate_header_link = "{$scheme}://{$host}{$port}" . urlencode($_SERVER["REQUEST_URI"]);
 ?>
 <script>
 jQuery(document).ready(function()
-		{
-		ActivateHeaderLink('<?php echo $scheme . "://" . $host . (isset($port)?":" . $port:"") . $_SERVER["REQUEST_URI"] ?>');
-		});
+    {
+    ActivateHeaderLink('<?php echo $activate_header_link; ?>');
+    });
 </script>
 <?php
 // Non-ajax specific hook 

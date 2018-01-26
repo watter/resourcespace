@@ -14,15 +14,21 @@ $collectionname                         = getvalescaped('entercolname', '');
 $search                                 = getvalescaped('search', '');
 $offset                                 = getvalescaped('offset', '', true);
 $order_by                               = getvalescaped('order_by', '');
+// This is the archive state for searching, NOT the archive state to be set from the form POST
 $archive                                = getvalescaped('archive', '', true);
 $setarchivestate                        = getvalescaped('status', '', true);
 $alternative                            = getvalescaped('alternative', ''); # Batch upload alternative files
 $replace                                = getvalescaped('replace', ''); # Replace Resource Batch
 $replace_resource                       = getvalescaped('replace_resource', ''); # Option to replace existing resource file
 $replace_resource_original_alt_filename = getvalescaped('replace_resource_original_alt_filename', '');
+$single                                 = getval("single","") != "" || getval("forcesingle","") != "";
+
+// When uploading, if there are any files in the queue that have similar names plus a suffix to distinguish between original
+// and alternatives (see $upload_alternatives_suffix) then, attach the matching alternatives to the resource they belong to
+$attach_alternatives_found_to_resources = (trim($upload_alternatives_suffix) != '');
+
 $redirecturl = getval("redirecturl","");
 if(strpos($redirecturl, $baseurl)!==0 && !hook("modifyredirecturl")){$redirecturl="";}
-
 
 if ($replace_resource && (!get_edit_access($replace_resource) || resource_file_readonly($replace_resource)))
     {
@@ -89,6 +95,7 @@ $uploadparams= array(
     'filename_field'                         => getval('filename_field', ''),
 	'keep_original'	                         => $replace_resource_preserve_option && $replace_resource_preserve_default,
     'replace_resource_original_alt_filename' => $replace_resource_original_alt_filename,
+    'single'                                 => ($single ? "true" : "false")
 );
 
 
@@ -147,10 +154,10 @@ if (substr($order_by,0,5)=="field"){$default_sort_direction="ASC";}
 $sort=getval("sort",$default_sort_direction);
 
 $allowed_extensions="";
-if ($resource_type!="") {$allowed_extensions=get_allowed_extensions_by_type($resource_type);}
+if ($resource_type!="" && !$alternative) {$allowed_extensions=get_allowed_extensions_by_type($resource_type);}
 
 
-if ($collection_add!=="false")
+if ($collection_add!=="false" && is_numeric($collection_add))
 	{
 	# Switch to the selected collection (existing or newly created) and refresh the frame.
  	set_user_collection($userref,$collection_add);
@@ -224,24 +231,31 @@ if($send_collection_to_admin && $archive == -1 && getvalescaped('ajax' , 'false'
 		}
     exit();
 	}
+
 global $php_path,$relate_on_upload,$enable_related_resources;
-if($relate_on_upload && $enable_related_resources && getval("uploaded_refs","")!=""){
-    $resource_refs=getval("uploaded_refs","");
-    $stringlist="";
-    foreach ($resource_refs as $k => $v) {
-        if (!is_numeric($v)) {
+if($relate_on_upload && $enable_related_resources && getval("uploaded_refs", "") != "")
+    {
+    $resource_refs = getval("uploaded_refs", "");
+    $valid_refs    = array();
+
+    foreach($resource_refs as $resource_ref)
+        {
+        if(!is_numeric($resource_ref))
+            {
             exit("NUMERIC values ONLY");
+            }
+
+        $valid_refs[] = $resource_ref;
         }
-        else {
-            $stringlist.= $v.",";
-        }
-    }
-    if($stringlist!=="") 
+
+    $stringlist = implode(',', $valid_refs);
+
+    if($stringlist !== "")
         {
         exec($php_path . "/php " . dirname(__FILE__)."/tools/relate_resources.php \"" . $stringlist. "\" \"" . $_SERVER["HTTP_HOST"] . "\" > /dev/null 2>&1 &");
-        exit("Resource Relation Started: ".$stringlist);
+        exit("Resource Relation Started: " . $stringlist);
         }
-}
+    }
 
 #handle posts
 if ($_FILES)
@@ -295,7 +309,7 @@ if ($_FILES)
             debug("PLUPLOAD - invalid file extension received from user " . $username . ",  filename " . $plfilename . ", chunk " . $chunk . " of " . $chunks);
        		die('{"jsonrpc" : "2.0", "error" : {"code": 105, "message": "Banned file extension."}, "id" : "id"}');
 		}
-
+	hook('additional_plupload_checks');
 	// Clean the filename for security reasons
 	if($replace){$origuploadedfilename=escape_check($plfilename);}
 	$plfilename = preg_replace('/[^\w\._]+/', '_', $plfilename);
@@ -343,11 +357,11 @@ if ($_FILES)
             }
 
     // Check the chunk and file have not been processed before for this filename
-    $pluplpoad_processed_filepath = $targetDir . DIRECTORY_SEPARATOR . 'processing_' . $plfilename . '.txt';
-    if($plupload_allow_duplicates_in_a_row && file_exists($pluplpoad_processed_filepath))
+    $plupload_processed_filepath = $targetDir . DIRECTORY_SEPARATOR . 'processing_' . $plfilename . '.txt';
+    if(!$plupload_allow_duplicates_in_a_row && file_exists($plupload_processed_filepath))
         {
         // Get current chunk, queue index and filename so we can know if we processed it before or not
-        $processed_file_content = file_get_contents($pluplpoad_processed_filepath);
+        $processed_file_content = file_get_contents($plupload_processed_filepath);
         $processed_file_content = explode(',', $processed_file_content);
 
         // If this chunk-file-filename has been processed, don't process it again
@@ -387,14 +401,11 @@ if ($_FILES)
                         fclose($out);
                         @unlink($_FILES['file']['tmp_name']);
 
-                        if($plupload_allow_duplicates_in_a_row)
-                            {
-                            // Write in the processed file
-                            $processed_file_handle = fopen($pluplpoad_processed_filepath, 'w');
-                            $processed_file_new_content = $chunk . ',' . $queue_index;
-                            fwrite($processed_file_handle, $processed_file_new_content);
-                            fclose($processed_file_handle);
-                            }
+                        // Write in the processed file (keep track of the last processed chunk)
+                        $processed_file_handle      = fopen($plupload_processed_filepath, 'w');
+                        $processed_file_new_content = "{$chunk},{$queue_index}";
+                        fwrite($processed_file_handle, $processed_file_new_content);
+                        fclose($processed_file_handle);
                         }
                     else
                         {
@@ -426,14 +437,11 @@ if ($_FILES)
                     fclose($in);
                     fclose($out);
 
-                    if($plupload_allow_duplicates_in_a_row)
-                        {
-                        // Write in the processed file
-                        $processed_file_handle = fopen($pluplpoad_processed_filepath, 'w');
-                        $processed_file_new_content = $chunk . ',' . $queue_index;
-                        fwrite($processed_file_handle, $processed_file_new_content);
-                        fclose($processed_file_handle);
-                        }
+                    // Write in the processed file (keep track of the last processed chunk)
+                    $processed_file_handle      = fopen($plupload_processed_filepath, 'w');
+                    $processed_file_new_content = "{$chunk},{$queue_index}";
+                    fwrite($processed_file_handle, $processed_file_new_content);
+                    fclose($processed_file_handle);
                     }
                 else
                     {
@@ -548,7 +556,7 @@ if ($_FILES)
                                 }
 
                             # Add to collection?
-                            if ($collection_add!="false")
+                            if ($collection_add!="false" && is_numeric($collection_add))
                                     {
                                     add_resource_to_collection($ref,$collection_add,false,"",$resource_type);
                                     }
@@ -559,10 +567,33 @@ if ($_FILES)
                                 // This has been added from a related resource upload link
                                 sql_query("insert into resource_related(resource,related) values ($relateto,$ref)");
                                 }
-        
+
+                            // For upload_then_edit mode ONLY, we decide the resource type based on the extension. User
+                            // can later change this at the edit stage
+                            // IMPORTANT: we change resource type only if user has access to it
+                            if($upload_then_edit)
+                                {
+                                $resource_type_from_extension = get_resource_type_from_extension(
+                                    pathinfo($plupload_upload_location, PATHINFO_EXTENSION),
+                                    $resource_type_extension_mapping,
+                                    $resource_type_extension_mapping_default
+                                );
+
+                                if(!checkperm("XU{resource_type_from_extension}"))
+                                    {
+                                    update_resource_type($ref, $resource_type_from_extension);
+                                    }
+                                }
+
                             # Log this			
                             daily_stat("Resource upload",$ref);
+                            
                             $status=upload_file($ref,(getval("no_exif","")=="yes" && getval("exif_override","")==""),false,(getval('autorotate','')!=''),$plupload_upload_location);
+                            if(file_exists($plupload_processed_filepath))
+                                {
+                                unlink($plupload_processed_filepath);
+                                }
+                                
                             $wait = hook('afterpluploadfile', '', array($ref, $extension));
                             echo "SUCCESS: " . htmlspecialchars($ref);
                             exit();
@@ -627,6 +658,11 @@ if ($_FILES)
                             $status = upload_file($replace_resource, ('yes' == getval('no_exif', '') && '' == getval('exif_override', '')), false, ('' != getval('autorotate','')), $plupload_upload_location);
 
                             hook("additional_replace_existing");
+                            
+                            if(file_exists($plupload_processed_filepath))
+                                {
+                                unlink($plupload_processed_filepath);
+                                }
 
                             echo "SUCCESS: " . htmlspecialchars($replace_resource);
 											
@@ -650,7 +686,11 @@ if ($_FILES)
 									// A single resource has been found with the same filename
 									daily_stat("Resource upload",$target_resource[0]);
 									$status=upload_file($target_resource[0],(getval("no_exif","")=="yes" && getval("exif_override","")==""),false,(getval('autorotate','')!=''), $plupload_upload_location); # Upload to the specified ref.
-									echo "SUCCESS: " . htmlspecialchars($target_resource[0]);
+									if(file_exists($plupload_processed_filepath))
+                                        {
+                                        unlink($plupload_processed_filepath);
+                                        }
+                                    echo "SUCCESS: " . htmlspecialchars($target_resource[0]);
 									// Check to see if we need to notify users of this change							
 									if($notify_on_resource_change_days!=0)
 										{								
@@ -740,7 +780,7 @@ elseif ($upload_no_file && getval("createblank","")!="")
 	{
     $ref=copy_resource(0-$userref);    
 	# Add to collection?
-	if ($collection_add!="false")
+	if ($collection_add!="false" && is_numeric($collection_add))
 		{
 		add_resource_to_collection($ref,$collection_add);
 		}
@@ -767,6 +807,9 @@ if($store_uploadedrefs ||($relate_on_upload && $enable_related_resources && getv
 <?php 
 }
 ?>
+// A mapping used by subsequent file uploads of alternatives to know to which resource to add the files as alternatives
+// Used when the original file and its alternatives are uploaded in a batch to a collection
+var resource_ids_for_alternatives = [];
 
 var pluploadconfig = {
         // General settings
@@ -788,7 +831,7 @@ var pluploadconfig = {
         },
         rename:true,
 		<?php } ?>
-        <?php if ($replace_resource > 0){?>
+        <?php if ($replace_resource > 0 || $single){?>
         multi_selection:false,
         rename: true,
         <?php }
@@ -844,16 +887,21 @@ var pluploadconfig = {
                                             {
                                             uploadError = JSON.parse(info.response);
                                             uploaderrormessage= uploadError.error.code + " " + uploadError.error.message;
+                                            if(uploadError.error.code==108)
+                                                {
+                                                styledalert('<?php echo $lang["error"]?>','<?php echo $lang["duplicateresourceupload"] ?>\n' + uploadError.error.duplicates);   
+                                                }
+                                            else
+                                                {
+                                                styledalert(uploadError.error.code, uploadError.error.message);
+                                                }
                                             }
                                         catch(e)
                                             {
                                             uploaderrormessage = 'Server side error! Please contact the administrator!';
                                             }
                                         file.status = plupload.FAILED;
-										if(uploadError.error.code==108)
-											{
-											styledalert('<?php echo $lang["error"]?>','<?php echo $lang["duplicateresourceupload"] ?>\n' + uploadError.error.duplicates);	
-											}
+										
                                         if(show_upload_log)
                                             {
                                             jQuery("#upload_log").append("\r\n" + file.name + " - " + uploaderrormessage);
@@ -872,7 +920,30 @@ var pluploadconfig = {
                                 resource_keys.push(info.response.replace( /^\D+/g, ''));
                                 <?php 
                                 }
-                                ?>
+
+                                // When uploading a batch of files and their alternatives, keep track of the resource ID
+                                // and the filename it is associated with
+                                if($attach_alternatives_found_to_resources)
+                                    {
+                                    ?>
+                                    var alternative_suffix   = '<?php echo trim($upload_alternatives_suffix); ?>';
+                                    var uploaded_resource_id = info.response.replace(/^\D+/g, '');
+                                    var filename             = file.name;
+                                    var filename_ext         = getFilePathExtension(filename);
+
+                                    if(filename_ext != '')
+                                        {
+                                        filename = filename.substr(0, file.name.lastIndexOf('.' + filename_ext));
+                                        }
+
+                                    // Add resource ID - filename map only for original resources
+                                    if(filename.lastIndexOf(alternative_suffix) === -1)
+                                        {
+                                        resource_ids_for_alternatives[uploaded_resource_id] = filename;
+                                        }
+                                    <?php
+                                    }
+                                    ?>
                                 //update collection div if uploading to active collection
                                 <?php if ($usercollection==$collection_add) { ?>
                                         CollectionDivLoad("<?php echo $baseurl . '/pages/collections.php?nowarn=true&nc=' . time() ?>");
@@ -944,7 +1015,7 @@ var pluploadconfig = {
                                   uploader.bind('UploadComplete', function(up, files) {
                                         jQuery('.plupload_done').slideUp('2000', function() {
                                                         uploader.splice();
-                                                        window.location.href='<?php echo $baseurl_short?>pages/search.php?search=!contributions<?php echo urlencode($userref) ?>&archive=<?php echo urlencode($setarchivestate); if ($setarchivestate == -2 && $pending_submission_prompt_review && $collection_add!="false" && checkperm("e-1")){echo "&promptsubmit=true" . "&collection_add=" . $collection_add;} ?>';
+                                                        window.location.href='<?php echo $baseurl_short . "pages/search.php?search=!contributions" . urlencode($userref) . "&archive=" . urlencode($setarchivestate) . (($setarchivestate == -2 && $pending_submission_prompt_review && checkperm("e-1"))?"&promptsubmit=true":"") . (($collection_add!="false")?"&collection_add=" . $collection_add:""); ?>';
                                                         
                                         });
                                   });
@@ -978,12 +1049,85 @@ var pluploadconfig = {
 												 // Reset the lastqueued flag in case more files are added now
 												 uploader.settings.url = ReplaceUrlParameter(uploader.settings.url,'lastqueued','');
                           });
-                  
-                                
-                 
-                                
-                          <?php } ?>
-                          
+                          <?php }
+
+if($attach_alternatives_found_to_resources)
+    {
+    ?>
+    uploader.bind('FilesAdded', function (up, files)
+        {
+        if(up.files.length <= 1)
+            {
+            return true;
+            }
+
+        var alternative_suffix  = '<?php echo trim($upload_alternatives_suffix); ?>';
+        var original_file_found;
+
+        for(i = 0; i < up.files.length; i++)
+            {
+            filename = up.files[i].name.substr(0, up.files[i].name.lastIndexOf('.' + getFilePathExtension(up.files[i].name)));
+
+            if(filename.lastIndexOf(alternative_suffix) === -1)
+                {
+                original_file_found = up.files[i];
+
+                break;
+                }
+            };
+
+        // One original file must be detected and it must be the first one in the queue
+        if(typeof original_file_found !== 'undefined' && up.files.indexOf(original_file_found))
+            {
+            styledalert("<?php echo $lang['error']; ?>", "<?php echo $lang['error_upload_resource_alternatives_batch']; ?>");
+            up.stop();
+
+            return false;
+            }
+        });
+
+    uploader.bind('BeforeUpload', function (up, file)
+        {
+        var alternative_suffix = '<?php echo trim($upload_alternatives_suffix); ?>';
+
+        if(alternative_suffix == '')
+            {
+            return true;
+            }
+
+        filename = file.name.substr(0, file.name.lastIndexOf('.' + getFilePathExtension(file.name)));
+
+        // Check if original file, in which case we stop here
+        if(filename.lastIndexOf(alternative_suffix) === -1)
+            {
+            return true;
+            }
+
+        // Below this point we only deal with alternatives for which we have a resource ID to use
+        original_filename = filename.substr(0, filename.lastIndexOf(alternative_suffix));
+        resource_id       = resource_ids_for_alternatives.indexOf(original_filename);
+
+        if(resource_id === -1)
+            {
+            styledalert("<?php echo $lang['error']; ?>", "<?php echo $lang['error_upload_resource_not_found']; ?>");
+            up.stop();
+
+            return false;
+            }
+
+        // If we've got so far, it means we can upload this file as an alternative for this resource ID
+        uploader.settings.url = ReplaceUrlParameter(uploader.settings.url, 'alternative', resource_id);
+        });
+
+    uploader.bind('UploadComplete', function (up, files)
+        {
+        // Clean-up so user can go through a second batch
+        uploader.settings.url = ReplaceUrlParameter(uploader.settings.url, 'alternative', '');
+        });
+    <?php
+    }
+    ?>
+
                           // Client side form validation
                         jQuery('form.pluploadform').submit(function(e) {
                                 
@@ -1068,7 +1212,7 @@ if ($collection_add!="false" && count(get_collection_external_access($collection
 	# Add language support if available
 	if (file_exists("../lib/plupload_2.1.8/i18n/" . $language . ".js"))
 		{
-		echo "<script type=\"text/javascript\" src=\"../lib/plupload_2.1.8/i18n/" . $language . ".js?" . $css_reload_key . "\"></script>";
+		echo "<script type=\"text/javascript\" src=\"" . $baseurl_short . "lib/plupload_2.1.8/i18n/" . $language . ".js?" . $css_reload_key . "\"></script>";
 		}
 		?>
 		
@@ -1151,7 +1295,7 @@ else
 
 hook("additionaluploadtext");
 
-if ($allowed_extensions!=""){
+if ($allowed_extensions!="" && $alternative==''){
     $allowed_extensions=str_replace(", ",",",$allowed_extensions);
     $list=explode(",",trim($allowed_extensions));
     sort($list);

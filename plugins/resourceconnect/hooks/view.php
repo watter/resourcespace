@@ -14,6 +14,28 @@ function HookResourceconnectViewNextpreviewregeneratekey()
 	return $k;
 	}
 
+function HooKResourceconnectViewReplaceviewnav()
+    {
+    # Replace navigation links for view page.
+    global $is_resourceconnect,$show_related_themes;
+    
+    if (isset($is_resourceconnect))
+        {       
+        $show_related_themes=false;# Never show related themes
+        return true;
+        }
+    }
+
+function HooKResourceconnectViewReplacemaxlink()
+    {
+    # Replace navigation links for view page.
+    global $is_resourceconnect;
+    if (isset($is_resourceconnect))
+        {       
+        return true;
+        }
+    }
+    
 function HookResourceconnectViewViewallresults()	
 	{
 	# View all results.
@@ -45,7 +67,7 @@ function HookResourceconnectViewPreviewextraurl()
 	# Forward the resourceconnect source.
 
 	global $baseurl;
-	return ("resourceconnect_source=" .$baseurl);
+	return ("resourceconnect_source=" .$baseurl . "\" target='_blank' empty=\"");
 	}
 
 
@@ -100,3 +122,10 @@ function HookResourceconnectViewBeforefooter()
 	<?php
 	}
 
+function HookResourceconnectViewBeforefields()
+    {
+    global $applicationname,$lang,$resourceconnect_affiliates,$resourceconnect_this;
+    ?>
+    <div class="itemNarrow"><h3><?php echo $lang["resourceconnect_affiliate"] ?></h3><p><?php echo $resourceconnect_affiliates[$resourceconnect_this]["name"] ?></p></div>
+    <?php    
+    }

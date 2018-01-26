@@ -22,24 +22,54 @@ $find=getvalescaped("find","");
 $restypefilter=getvalescaped("restypefilter","",true);
 $field_order_by=getvalescaped("field_order_by","ref");
 $field_sort=getvalescaped("field_sort","asc");
+$newfield = getval("newfield","") != "";
 
 $url_params = array("ref"=>$ref,
 		    "restypefilter"=>$restypefilter,
 		    "$field_order_by"=>$field_order_by,
 		    "field_sort"=>$field_sort,
 		    "find" =>$find);
-$url=generateURL($baseurl . "/pages/admin/admin_resource_type_field_edit.php",$url_params);
-
 		
 $backurl=getvalescaped("backurl","");
 if($backurl=="")
     {
     $backurl=$baseurl . "/pages/admin/admin_resource_type_fields.php?ref=" . urlencode($ref) . "&restypefilter=" . urlencode($restypefilter) . "&field_sort=" . urlencode($field_sort) . "&find=" . urlencode($find);
     }
+else
+	{
+	$back_url_params=parse_url($backurl, PHP_URL_QUERY);
+	# the first parameter of the back url is needed here but isn't captured
+	$back_url_params=explode('&', $back_url_params);
+	
+	foreach($back_url_params as $param)
+		{
+		$param_parts=explode('=', $param);
+		switch($param_parts[0])
+			{
+			case 'restypefilter':
+				$restypefilter=$param_parts[1];
+				break;
+			case 'field_order_by':
+				$field_order_by=$param_parts[1];
+				break;
+			case 'field_sort':
+				$field_sort=$param_parts[1];
+				break;
+			case 'find':
+				$find=$param_parts[1];
+				break;
+			}
+		}
+	
+	}
+	
+
+$url=generateURL($baseurl . "/pages/admin/admin_resource_type_field_edit.php",$url_params);
+
 	
 function admin_resource_type_field_option($propertyname,$propertytitle,$helptext="",$type, $currentvalue,$fieldtype)
 	{
-	global $ref,$lang, $baseurl_short,$FIXED_LIST_FIELD_TYPES, $daterange_edtf_support, $allfields;
+	global $ref,$lang, $baseurl_short,$FIXED_LIST_FIELD_TYPES, $TEXT_FIELD_TYPES, $daterange_edtf_support, $allfields, $newfield;
 	if($propertyname=="linked_data_field")
 		{
 		if($fieldtype==FIELD_TYPE_DATE_RANGE && $daterange_edtf_support)
@@ -84,9 +114,40 @@ function admin_resource_type_field_option($propertyname,$propertytitle,$helptext
 			// Sort  so that the display order makes some sense
 			//natsort($field_types);
 			?>
-			<div class="tickset">
-			  <select id="<?php echo $propertyname ?>" name="<?php echo $propertyname ?>" class="stdwidth" onchange="CentralSpacePost(this.form);">
-				
+            <div class="tickset">
+                <select id="<?php echo $propertyname ?>"
+                        name="<?php echo $propertyname ?>"
+                        class="stdwidth"
+                        onchange="
+                             <?php if(!$newfield)
+								{?>
+								newval=parseInt(this.value);
+								if((jQuery.inArray(newval,fixed_list_fields) > -1) && (jQuery.inArray(current_type,text_fields) > -1))
+									{
+									if(confirm('<?php echo $lang["admin_resource_type_field_migrate_data_prompt"] ?>'))
+										{
+										jQuery('#migrate_data').val('yes');
+										this.form.submit();
+										}
+									else
+										{
+										jQuery('#migrate_data').val('');
+										}
+									}
+								else
+									{
+									this.form.submit();
+									}
+								<?php
+								}
+							else
+								{
+								?>
+								this.form.submit();
+								<?php
+								}
+								?>
+                ">
 				<?php
 				foreach($field_types as $field_type=>$field_type_description)
 					{
@@ -108,11 +169,13 @@ function admin_resource_type_field_option($propertyname,$propertytitle,$helptext
                     <label><?php echo $lang['options']; ?></label>
                     <span><a href="<?php echo $baseurl_short ?>pages/admin/admin_manage_field_options.php?field=<?php echo $ref ?>" onClick="return CentralSpaceLoad(this,true);"><?php echo $lang['property-options_edit_link']; ?></a></span>
                     <div class="clearerleft"></div>
-                </div>
 
                 <?php
                 if(FIELD_TYPE_CATEGORY_TREE != $currentvalue)
                     {
+                    ?>
+                    </div>
+                    <?php
                     $field_index              = array_search($ref, array_column($allfields, 'ref'));
                     $automatic_nodes_ordering = (false !== $field_index ? $allfields[$field_index]['automatic_nodes_ordering'] : 0);
                     ?>
@@ -231,6 +294,7 @@ $fieldcolumns = array(
     'advanced_search'          => array($lang['property-enable_advanced_search'],'',1,1),
     'simple_search'            => array($lang['property-enable_simple_search'],'',1,1),
     'exiftool_field'           => array($lang['property-exiftool_field'],'',0,1),
+    'fits_field'               => array($lang['property-fits_field'], $lang['information-fits_field'], 0, 1),
     'use_for_similar'          => array($lang['property-use_for_find_similar_searching'],'',1,1),
     'hide_when_uploading'      => array($lang['property-hide_when_uploading'],'',1,1),
     'hide_when_restricted'     => array($lang['property-hide_when_restricted'],'',1,1),
@@ -266,21 +330,32 @@ if ($execution_lockout)
 $modify_resource_type_field_columns=hook("modifyresourcetypefieldcolumns","",array($fieldcolumns));
 if($modify_resource_type_field_columns!=''){
         $fieldcolumns=$modify_resource_type_field_columns;
-}				
+}
+
+$type_change = false;
+
 if(getval("save","")!="" && getval("delete","")=="")
 	{
 	# Save field config
-	$sync_field=getvalescaped("sync_field",0);
+	$sync_field = getvalescaped("sync_field",0);
+	$existingfield = get_resource_type_field($ref);
 	
 	foreach ($fieldcolumns as $column=>$column_detail)		
-		{		
+		{
 		if ($column_detail[2]==1)
 			{
 			$val=getval($column,"0") ? "1" : "0";
 			}		
 		else
 			{
-			$val=escape_check(trim(getval($column,""))); 
+			$val=escape_check(trim(getval($column,"")));			
+			
+			if($column == "type" && $val != $existingfield["type"] && getval("migrate_data","") != "")
+				{
+				// Need to migrate field data
+				$migrate_data = true;				
+				}
+			
 			// Set shortname if not already set
 			if($column=="name" && $val==""){$val="field" . $ref;}
 			}
@@ -351,26 +426,14 @@ if (getval("delete","")!="")
 	    }
         else
 	    {	    
-	    // User needs to confirm deletion as data wil be lost
+	    // User needs to confirm deletion as data will be lost
 	    $error_text=str_replace("%%AFFECTEDRESOURCES%%",$affected_resources_count,$lang["admin_delete_field_confirm"]);
-	    // $affected_links="<br>";
-	    // for ($a=0;$a<10 && $a<$affected_resources_count;$a++) // show links for up to 10 of the affected resources
-			// {
-			// if($a!=0){$affected_links.=",";}    
-			// $affected_links.="<a target='_blank' href='" . $baseurl . "/?r=" . $affected_resources[$a] . "'>" . $affected_resources[$a] . "</a>";
-			// } 
-		//$error_text.=$affected_links;
-		
-		$error_text.="<br><a target=\"_blank\" href=\"" . $baseurl  . "/pages/search.php?search=!hasdata" . $ref . "\">" . $lang["show_resources"] . "</a>";
+		$error_text.="<br /><a target=\"_blank\" href=\"" . $baseurl  . "/pages/search.php?search=!hasdata" . $ref . "\">" . $lang["show_resources"] . "</a>";
 	    
 	    $confirm_delete=true;
 	    }
-	
-	
 	}
-
-
-
+	
 # Fetch  data
 $allfields=get_resource_type_fields();
 $resource_types=sql_query("select ref, name from resource_type");
@@ -380,13 +443,26 @@ foreach($resource_types as $resource_type)
 	}
 $resource_type_array[0]=$lang["resourcetype-global_field"];
 $resource_type_array[999]=$lang["resourcetype-archive_only"];
-
 $fielddata=get_resource_type_field($ref);
 
 include "../../include/header.php";
-
 ?>
+<script>
+var fixed_list_fields = [<?php echo implode(",",$FIXED_LIST_FIELD_TYPES) ?>];
+var text_fields       = [<?php echo implode(",",$TEXT_FIELD_TYPES) ?>];
+var current_type      = <?php echo ('' != $fielddata['type'] ? $fielddata['type'] : 0); ?>;
 
+<?php if (isset($migrate_data))
+	{
+	?>
+	jQuery(document).ready(function()
+		{
+		window.location.href = '<?php echo $baseurl ?>/pages/tools/migrate_data_to_fixed.php?field=<?php echo $ref ?>';
+		});
+	<?php
+	}
+?>
+</script>
 <div class="BasicsBox">
     
     <p>
@@ -399,9 +475,11 @@ include "../../include/header.php";
 
  
 
-<form method=post class="FormWide" action="<?php echo $baseurl_short?>pages/admin/admin_resource_type_field_edit.php?ref=<?php echo $fielddata["ref"] . "&restypefilter=" . $restypefilter . "&field_order_by=" . $field_order_by . "&field_sort=" . $field_sort ."&find=" . urlencode($find); ?>" onSubmit="return CentralSpacePost(this,true);">
+<form method="post" class="FormWide" action="<?php echo $baseurl_short?>pages/admin/admin_resource_type_field_edit.php?ref=<?php echo $fielddata["ref"] . "&restypefilter=" . $restypefilter . "&field_order_by=" . $field_order_by . "&field_sort=" . $field_sort ."&find=" . urlencode($find); ?>" onSubmit="return CentralSpacePost(this,true);">
 
-<input type=hidden name=ref value="<?php echo urlencode($ref) ?>">
+<input type="hidden" name="ref" value="<?php echo urlencode($ref) ?>">
+
+<input type="hidden" name="newfield" value="<?php echo ($newfield)?"TRUE":""; ?>">
 
 
 <?php
@@ -422,7 +500,6 @@ if($confirm_delete)
 else
     {
     ?>
- 
     <div class="Question"><label><?php echo $lang["property-field_id"] ?></label>
 	<div class="Fixed"><?php echo  $fielddata["ref"] ?></div>
 	<div class="clearerleft"> </div>
@@ -449,6 +526,7 @@ else
     <label for="buttons"> </label>			
     <input name="save" type="submit" value="&nbsp;&nbsp;&nbsp;&nbsp;<?php echo $lang["save"]?>&nbsp;&nbsp;&nbsp;&nbsp;" />&nbsp;&nbsp;
     <input type="button" class="button" onClick="CentralSpaceLoad('<?php echo $baseurl . "/pages/admin/admin_copy_field.php?ref=" . $ref . "&backurl=" . $url ?>',true);return false;" value="&nbsp;&nbsp;<?php echo $lang["copy-field"] ?>&nbsp;&nbsp;" >
+    <input name="migrate_data" id="migrate_data" type="hidden" value="">
     <input name="delete" type="button" value="&nbsp;&nbsp;<?php echo $lang["action-delete"]?>&nbsp;&nbsp;" onClick="if(confirm('<?php echo $lang["confirm-deletion"] ?>')){jQuery('#delete').val('yes');this.form.submit();}else{jQuery('#delete').val('');}" />
 
     </div>

@@ -53,7 +53,7 @@ if ($ref<0)
 		{
 	    $collection_add=getvalescaped("collection_add","");
 		?>
-		<div class="Question" id="question_collectionadd">
+		<div class="Question <?php if(isset($save_errors) && is_array($save_errors) && array_key_exists('collectionname',$save_errors)) { echo " FieldSaveError"; } ?>" id="question_collectionadd">
 		<label for="collection_add"><?php echo $lang["addtocollection"]?></label>
 		<select name="collection_add" id="collection_add" class="stdwidth">
 		
@@ -262,7 +262,7 @@ if ($ref<0)
 		// if the user can add to a theme, include the theme selector
 		?>
 			<!-- select theme if collection is public -->
-			<script type="text/javascript" src="../lib/js/update_theme_levels.js"></script>
+			<script type="text/javascript" src="<?php echo $baseurl_short ?>lib/js/update_theme_levels.js"></script>
 			<input type="hidden" name="themestring" id="themestring" value="" />
 			<div id='themeselect' class='themeselect' style="display:none">
 				<?php 

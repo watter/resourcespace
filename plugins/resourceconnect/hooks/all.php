@@ -3,32 +3,37 @@
 # Check access keys
 function HookResourceconnectAllCheck_access_key($resource,$key)
 	{
-
 	# Generate access key and check that the key is correct for this resource.
 	global $scramble_key;
 	$access_key=md5("resourceconnect" . $scramble_key);
-	
+
 	if ($key!=substr(md5($access_key . $resource),0,10)) {return false;} # Invalid access key. Fall back to user logins.
 
 	global $resourceconnect_user; # Which user to use for remote access?
+	$userdata=validate_user("u.ref='$resourceconnect_user'");
+	setup_user($userdata[0]);
 	
-	global $usergroup,$userpermissions,$userrequestmode;
-	$userinfo=sql_query("select u.usergroup,g.permissions from user u join usergroup g on u.usergroup=g.ref where u.ref='$resourceconnect_user'");
-	if (count($userinfo)>0)
-		{
-		$usergroup=$userinfo[0]["usergroup"];
-		$userpermissions=explode(",",$userinfo[0]["permissions"]);
-		if (hook("modifyuserpermissions")){$userpermissions=hook("modifyuserpermissions");}
-		$userrequestmode=0; # Always use 'email' request mode for external users
-		}
 	
+	
+	# Set that we're being accessed via resourceconnect.
+	global $is_resourceconnect;
+	$is_resourceconnect=true;
+
+	# Disable collections - not needed when accessed remotely
+	global $collections_footer;	
+	$collections_footer=false;
+	
+	# Disable maps
+	global $disable_geocoding;
+	$disable_geocoding=true;
+
 	return true;
 	}
 
 function HookResourceConnectAllInitialise()
 	{
 	# Work out the current affiliate
-	global $lang,$language,$resourceconnect_affiliates,$baseurl,$resourceconnect_selected,$resourceconnect_this;
+	global $lang,$language,$resourceconnect_affiliates,$baseurl,$resourceconnect_selected,$resourceconnect_this,$pagename,$collection;
 
 	# Work out which affiliate this site is
 	$resourceconnect_this="";
@@ -46,6 +51,50 @@ function HookResourceConnectAllInitialise()
 		}
 #	setcookie("resourceconnect_selected",$resourceconnect_selected);
 	setcookie("resourceconnect_selected",$resourceconnect_selected,0,"/",'',false,true);
+	
+	// Language string manipulation to warn on certain pages if necessary, e.g. where collection actions will not include remote assets
+	switch ($pagename)
+		{
+		case "contactsheet_settings":
+		ResourceConnectCollectionWarning("contactsheetintrotext",getvalescaped("ref",""));
+		break;
+
+		case "edit":
+		ResourceConnectCollectionWarning("edit__multiple",getvalescaped("collection",""));
+		break;
+	
+		case "collection_log":
+		ResourceConnectCollectionWarning("collection_log__introtext",getvalescaped("ref",""));
+		break;
+	
+		case "collection_edit_previews":
+		ResourceConnectCollectionWarning("collection_edit_previews__introtext",getvalescaped("ref",""));
+		break;
+		
+		case "search_disk_usage":
+		ResourceConnectCollectionWarning("search_disk_usage__introtext",str_replace("!collection","",getvalescaped("search","")));
+		break;
+	
+		case "collection_download":
+		ResourceConnectCollectionWarning("collection_download__introtext",getvalescaped("collection",""));
+		break;
+		}
+	
+	
+	
+	}
+
+function ResourceConnectCollectionWarning($languagestring,$collection)
+	{
+	global $lang;
+	# Are there any remote assets?
+	$c=sql_value("select count(*) value from resourceconnect_collection_resources where collection='" . escape_check($collection) . "'",0);
+	if ($c>0)
+		{
+		# Add a warning.
+		if (!isset($lang[$languagestring])) {$lang[$languagestring]="";}
+		$lang[$languagestring].="<p>" . $lang["resourceconnect_collectionwarning"] . "</p>";
+		}	
 	}
 
 function HookResourceConnectAllSearchfiltertop()
@@ -54,8 +103,12 @@ function HookResourceConnectAllSearchfiltertop()
 	global $lang,$language,$resourceconnect_affiliates,$baseurl,$resourceconnect_selected;
 	if (!checkperm("resourceconnect")) {return false;}
 	?>
-
-	<div class="SearchItem"><?php echo $lang["resourceconnect_affiliate"];?><br />
+<script>
+  $( function() {
+    $( document ).tooltip();
+  } );
+  </script>
+	<div class="SearchItem ResourceConnectSearch"><?php echo $lang["resourceconnect_search_database"];?>&nbsp;<a href="#" onClick="styledalert('<?php echo $lang["resourceconnect_search_database"] ?>','<?php echo $lang["resourceconnect_search_info"] ?>');" title="<?php echo $lang["resourceconnect_search_info"] ?>"><i class="fa fa-info-circle"></i></a><br />
 	<select class="SearchWidth" name="resourceconnect_selected">
 	
 	<?php for ($n=0;$n<count($resourceconnect_affiliates);$n++)

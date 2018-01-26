@@ -342,7 +342,7 @@ function set_user_collection($user,$collection)
 	}
 	
 if (!function_exists("create_collection")){	
-function create_collection($userid,$name,$allowchanges=0,$cant_delete=0,$ref=0)
+function create_collection($userid,$name,$allowchanges=0,$cant_delete=0,$ref=0,$public=false,$categories=array())
 	{
 	global $username,$anonymous_login,$rs_session, $anonymous_user_session_collection;
 	if($username==$anonymous_login && $anonymous_user_session_collection)
@@ -354,9 +354,22 @@ function create_collection($userid,$name,$allowchanges=0,$cant_delete=0,$ref=0)
 		{	
 		$rs_session="";
 		}
-
+	
+	$categorysql = "";
+	$themecolumns = "";
+	$themecount = 1;
+	if(count($categories) > 0)
+		{
+		foreach($categories as $category)
+			{
+			$themecolumns .= ",theme" . 	($themecount == 1 ? "" : $themecount);
+			$categorysql .= ",'" . escape_check($category) . "'";
+			$themecount++;
+			}
+		}
 	# Creates a new collection and returns the reference
-	sql_query("insert into collection (" . ($ref!=0?"ref,":"") . "name,user,created,allow_changes,cant_delete,session_id) values (" . ($ref!=0?"'" . $ref . "',":"") . "'" . escape_check($name) . "','$userid',now(),'$allowchanges','$cant_delete'," . (($rs_session=="")?"NULL":"'" . $rs_session . "'") . ")");
+	sql_query("insert into collection (" . ($ref!=0?"ref,":"") . "name,user,created,allow_changes,cant_delete,session_id,public" . $themecolumns . ") values (" . ($ref!=0?"'" . $ref . "',":"") . "'" . escape_check($name) . "','$userid',now(),'$allowchanges','$cant_delete'," . (($rs_session=="")?"NULL":"'" . $rs_session . "'") . "," . ($public ? "1" : "0" ) . $categorysql . ")");
+	//echo "insert into collection (" . ($ref!=0?"ref,":"") . "name,user,created,allow_changes,cant_delete,session_id,public" . $themecolumns . ") values (" . ($ref!=0?"'" . $ref . "',":"") . "'" . escape_check($name) . "','$userid',now(),'$allowchanges','$cant_delete'," . (($rs_session=="")?"NULL":"'" . $rs_session . "'") . "," . ($public ? "1" : "0" ) . $categorysql . ")" . "\n";
 	$ref=sql_insert_id();
 
 	index_collection($ref);	
@@ -466,7 +479,7 @@ function search_public_collections($search="", $order_by="name", $sort="ASC", $e
                     {
                     if (substr($keywords[$n],0,19)=="collectionkeywords:") $keywords[$n]=substr($keywords[$n],19);
 		    # Support field specific matching - discard the field identifier as not appropriate for collection searches.
-		    if (strpos($keywords[$n],":")!==false) {$keywords[$n]=substr($keywords[$n],strpos($keywords[$n],":")+1);echo $keywords[$n];}
+		    if (strpos($keywords[$n],":")!==false) {$keywords[$n]=substr($keywords[$n],strpos($keywords[$n],":")+1);}
                     $keyref=resolve_keyword($keywords[$n],false);
                     if ($keyref!==false) {$keyrefs[]=$keyref;}
                     $keysql.="join collection_keyword k" . $n . " on k" . $n . ".collection=c.ref and (k" . $n . ".keyword='$keyref')";
@@ -702,11 +715,20 @@ function save_collection($ref)
     // AC: save_collection() should be changed in terms of the way it works
     // as it submits everything rather then just update only what is needed
     collection_log($ref, 'A', 0, $public ? 'public' : 'private');
-
+	
+	$old_attached_users=sql_array("SELECT user value FROM user_collection WHERE collection='$ref'");
+	$new_attached_users=array();
+	$collection_owner=sql_value("SELECT u.fullname value FROM collection c LEFT JOIN user u on c.user=u.ref WHERE c.ref=$ref","");
+	if($collection_owner=='')
+		{
+		$collection_owner=sql_value("SELECT u.username value FROM collection c LEFT JOIN user u on c.user=u.ref WHERE c.ref=$ref","");
+		}
+	
 	sql_query("delete from user_collection where collection='$ref'");
 	
 	if ($attach_user_smart_groups)
 		{
+		$old_attached_groups=sql_array("SELECT usergroup value FROM usergroup_collection WHERE collection='$ref'");
 		sql_query("delete from usergroup_collection where collection='$ref'");
 		}
 
@@ -721,6 +743,7 @@ function save_collection($ref)
 		if (count($urefs)>0)
 			{
 			sql_query("insert into user_collection(collection,user) values ($ref," . join("),(" . $ref . ",",$urefs) . ")");
+			$new_attached_users=array_diff($urefs, $old_attached_users);
 			}
 		#log this
 		collection_log($ref,"S",0, join(", ",$ulist));
@@ -743,12 +766,30 @@ function save_collection($ref)
 							{
 							$groupnames.=", ";
 							}
-							$groupnames.=sql_value("select name value from usergroup where ref={$group}","");
+						$groupnames.=sql_value("select name value from usergroup where ref={$group}","");
+						}
+
+					$new_attached_groups=array_diff($groups, $old_attached_groups);
+					if(!empty($new_attached_groups))
+						{
+						foreach($new_attached_groups as $newg)
+							{
+							$group_users=sql_array("SELECT ref value FROM user WHERE usergroup=$newg");
+							$new_attached_users=array_merge($new_attached_users, $group_users);
+							}
 						}
 					}
 				#log this
 				collection_log($ref,"S",0, $groupnames);
 				}
+			}
+		# Send a message to any new attached user
+		if(!empty($new_attached_users))
+			{
+			global $baseurl, $lang;
+			
+			$new_attached_users=array_unique($new_attached_users);
+			message_add($new_attached_users,str_replace(array('%user%', '%colname%'), array($collection_owner, getvalescaped("name","")), $lang['collectionprivate_attachedusermessage']),$baseurl . "/?c=" . $ref);
 			}
 		}
 		
@@ -901,7 +942,7 @@ function get_themes($themes=array(""),$subthemes=false)
 	$order_sort="";
 	if ($themes_order_by!="name"){$order_sort=" order by $themes_order_by $sort";}
 	$sql.=" and c.public=1    $order_sort;";
-
+	//echo $sql . "\n";
 	$collections=sql_query($sql);
 	if ($themes_order_by=="name"){
 		if ($sort=="ASC"){usort($collections, 'collections_comparator');}
@@ -1078,7 +1119,7 @@ function email_collection($colrefs,$collectionname,$fromusername,$userlist,$mess
 	# htmlbreak is for composing list
 	$htmlbreak="\r\n";
 	global $use_phpmailer;
-	if ($use_phpmailer){$htmlbreak="<br><br>";$htmlbreaksingle="<br>";} 
+	if ($use_phpmailer){$htmlbreak="<br /><br />";$htmlbreaksingle="<br />";} 
 	
 	if ($fromusername==""){$fromusername=$applicationname;} // fromusername is used for describing the sender's name inside the email
 	if ($from_name==""){$from_name=$applicationname;} // from_name is for the email headers, and needs to match the email address (app name or user name)
@@ -1210,7 +1251,6 @@ function email_collection($colrefs,$collectionname,$fromusername,$userlist,$mess
 			$body = "";
 		}
 		$body.=$templatevars['fromusername']." " . (($emailcollectionmessageexternal)?$externalmessage:$internalmessage) . "\n\n" . $templatevars['message']."\n\n" . $viewlinktext ."\n\n".$templatevars['list'];
-		#exit ($body . "<br>" . $viewlinktext);	
 		send_mail($emails[$nx1],$subject,$body,$fromusername,$useremail,$template,$templatevars,$from_name,$cc);
 		$viewlinktext=$origviewlinktext;
 		}
@@ -1263,7 +1303,7 @@ function add_smart_collection()
 	$search=getvalescaped("addsmartcollection","");
 	$restypes=getvalescaped("restypes","");
 	if($restypes=="Global"){$restypes="";}
-	$archive=getvalescaped("archive","",true);
+	$archive = getvalescaped('archive', 0, true);
 	$starsearch=getvalescaped("starsearch",0);
 	
 	// more compact search strings should work with get_search_title
@@ -1323,7 +1363,8 @@ function add_saved_search_items($collection)
 	{
 	global $collection_share_warning, $collection_allow_not_approved_share, $userref, $collection_block_restypes, $search_all_workflow_states;
 	# Adds resources from a search to the collection.
-	$archivesearch = getvalescaped("archive","",true);
+	$archivesearch = getvalescaped('archive', '');
+
 	if($search_all_workflow_states && 0 != $archivesearch)
 		{
 		$search_all_workflow_states = false;
@@ -1413,69 +1454,105 @@ function add_saved_search_items($collection)
 	}
 
 if (!function_exists("allow_multi_edit")){
-function allow_multi_edit($collection)
+function allow_multi_edit($collection,$collectionid = 0)
 	{
 	global $resource;
 	# Returns true or false, can all resources in this collection be edited by the user?
-	# also applies edit filter, since it uses get_resource_access
 
-	if (!is_array($collection)){ // collection is an array of resource data
-        $collection=do_search("!collection" . $collection);
-
-	}
-	for ($n=0;$n<count($collection);$n++){
-		$resource = $collection[$n];
-		if (!get_edit_access($collection[$n]["ref"],$collection[$n]["archive"],false,$collection[$n])){return false;}
-		
-	}
-
+	if (is_array($collection) && $collectionid == 0)
+		{
+		// Do this the hard way by checking every resource for edit access
+		for ($n=0;$n<count($collection);$n++)
+			{
+			$resource = $collection[$n];
+			if (!get_edit_access($collection[$n]["ref"],$collection[$n]["archive"],false,$collection[$n]))
+				{
+				return false;
+				}
+			}	
+		}
+	else
+		{            
+		// Instead of checking each resource we can do a comparison between a search for all resources in collection and a search for editable resources
+		if(!is_array($collection))
+			{
+			// Need the collection resources so need to run the search
+			$collectionid = $collection;
+			$collection = do_search("!collection{$collectionid}", '', '', 0, -1, '', false, 0, false, false, '', false, true, true,false);
+			}
+			
+		$resultcount = count($collection);
+		$editresults = 	do_search("!collection{$collectionid}", '', '', 0, -1, '', false, 0, false, false, '', false, true, true,true);
+		$editcount = count($editresults);
+		if($resultcount != $editcount){return false;}
+		}
+	
+			
 	if(hook('denyaftermultiedit', '', array($collection))) { return false; }
 
 	return true;
-	
-	# Updated: 2008-01-21: Edit all now supports multiple types, so always return true.
-	/*
-	$types=sql_query("select distinct r.resource_type from collection_resource c left join resource r on c.resource=r.ref where c.collection='$collection'");
-	if (count($types)!=1) {return false;}
-	
-	$status=sql_query("select distinct r.archive from collection_resource c left join resource r on c.resource=r.ref where c.collection='$collection'");
-	if (count($status)!=1) {return false;}	
-	
-	return true;
-	*/
 	}
 }	
 
-function get_theme_image($themes=array(),$collection="")
+function get_theme_image($themes=array(), $collection="", $smart=false)
 	{
 	# Returns an array of resource references that can be used as theme category images.
 	global $theme_images_number;
 	global $theme_category_levels;
 	# Resources that have been specifically chosen using the option on the collection comments page will be returned first based on order by.
 	
-	$sqlselect="select r.ref value from collection c join collection_resource cr on c.ref=cr.collection join resource r on cr.resource=r.ref where c.public=1 and c.theme='" . escape_check($themes[0]) . "' ";
-	$orderby=" order by cr.use_as_theme_thumbnail desc";
-	for ($n=2;$n<=count($themes)+1;$n++){
-		if (isset($themes[$n-1])){
-			$sqlselect.=" and theme".$n."='" . escape_check($themes[$n-1]) . "' ";
-		} 
-		else {
-			if ($n<=$theme_category_levels){
-				# Resources in sub categories can be used but should be below those in the current category
-				$orderby.=", theme".$n . " ";
-			}
-		}
-	} 
-
-	if($collection!="")
-		{
-		$sqlselect.=" and c.ref = '" . escape_check($collection) .  "'";
-		}
+	# have this hook return an empty array if a plugin needs to return a false value from function
+	$images_override=hook('get_theme_image_override','', array($themes, $collection, $smart));
 	
-	$sqlselect.=" and r.has_image=1 ";
-	$orderby.=",r.hit_count desc,r.ref desc";
-	$sql = $sqlselect . $orderby . " limit " .$theme_images_number;
-	$images=sql_array($sql,0);	
+	if ($images_override!==false && is_array($images_override))
+		{
+		$images=$images_override;
+		}
+	else 
+		{
+		if ($smart)
+			{
+			$nodes='';
+			foreach($themes as $node){
+				$nodes.=($nodes!=='' ? ', ' : '') . $node['ref'];
+			}
+			if($nodes=='')
+				{
+				return false;
+				}
+			$sqlselect="select r.ref value from resource_node rn join resource r on rn.resource=r.ref where rn.node in (" . $nodes . ") and r.archive=0";
+			$orderby=" order by r.hit_count desc, r.ref desc";
+			}
+		else
+			{
+			$sqlselect="select r.ref value from collection c join collection_resource cr on c.ref=cr.collection join resource r on cr.resource=r.ref where c.public=1 and c.theme='" . escape_check($themes[0]) . "' ";
+		
+			$orderby=" order by cr.use_as_theme_thumbnail desc";
+			for ($n=2;$n<=count($themes)+1;$n++){
+				if (isset($themes[$n-1])){
+					$sqlselect.=" and theme".$n."='" . escape_check($themes[$n-1]) . "' ";
+				} 
+				else {
+					if ($n<=$theme_category_levels){
+						# Resources in sub categories can be used but should be below those in the current category
+						$orderby.=", theme".$n . " ";
+					}
+				}
+			} 
+
+			if($collection!="")
+				{
+				$sqlselect.=" and c.ref = '" . escape_check($collection) .  "'";
+				}
+			
+			$orderby.=",r.hit_count desc,r.ref desc";
+			}
+	
+		$sqlselect.=" and r.has_image=1 ";
+	
+		$sql = $sqlselect . $orderby . " limit " .$theme_images_number;
+		$images=sql_array($sql,0);	
+		}
 	if (count($images)>0) {return $images;}
 	return false;
 	}
@@ -1878,35 +1955,28 @@ function collection_set_private($collection)
 		}
 	}
 
-function collection_set_themes($collection,$themearr)
+/**
+* Set a collection as a featured collection.
+*
+* @param integer $collection - reference of collection
+* @param array  $categories - array of categories
+*
+* @return boolean
+*/
+function collection_set_themes ($collection, $categories = array())
 	{
-		// add theme categories to this collection
-		if (is_numeric($collection) && is_array($themearr)){
-			global $theme_category_levels;
-			$clause = '';
-			for ($i = 0; $i < $theme_category_levels; $i++){
-				if ($i == 0) {
-					$column = 'theme';
-				} else {
-					$column = "theme" . ($i + 1);
-				}
-				if (isset($themearr[$i])){
-					if (strlen($clause) > 0) {
-						$clause .= ", ";
-					}
-					$clause .= " $column = '" . escape_check($themearr[$i]) . "' ";
-				}
-			}
-			if (strlen($clause) > 0){
-				$sql = "update collection set $clause where ref = '$collection'";
-				sql_query($sql);
-				return true;
-			} else {
-				return false;
-			}
-		} else {
-			return false;
-		}	
+	global $theme_category_levels;
+	if(!is_numeric($collection) || !is_array($categories) || count($categories) > $theme_category_levels){return false;}
+	$sql="update collection set public = 1";
+	for($n=0;$n<count($categories);$n++)
+		{	
+		if ($n==0){$categoryindex="";} else {$categoryindex=$n+1;}
+		$sql .= ",theme" . $categoryindex . "='" . $categories[$n]. "'";
+		}
+	
+	$sql .= " where ref = '" . $collection . "'";
+	sql_query($sql);
+	return true;
 	}
 	
 function remove_all_resources_from_collection($ref){
@@ -2031,14 +2101,13 @@ function compile_collection_actions(array $collection_data, $top_actions, $resou
            $download_usage, $home_dash, $top_nav_upload_type, $pagename, $offset, $col_order_by, $find, $default_sort,
            $default_collection_sort, $starsearch, $restricted_share, $hidden_collections, $internal_share_access, $search,
            $usercollection, $disable_geocoding, $geo_locate_collection, $collection_download_settings, $contact_sheet,
-           $allow_resource_deletion;
-    
+           $allow_resource_deletion, $pagename;
+               
 	#This is to properly render the actions drop down in the themes page	
-	if (isset($collection_data['c']))
+	if ( isset($collection_data['ref']) && $pagename!="collections" )
 		{
-		$count_result = $collection_data['c'];
+		$count_result = count(get_collection_resources($collection_data['ref']));
 		}
-	
 	
 	if(isset($search) && substr($search, 0, 11) == '!collection' && ($k == '' || $internal_share_access))
 		{ 
@@ -2172,7 +2241,17 @@ function compile_collection_actions(array $collection_data, $top_actions, $resou
 		$options[$o]['data_attr']=$data_attribute;
 		$o++;
         }
-
+		
+	// Add option to publish as featured collection
+    if(checkperm("h") && ($k == '' || $internal_share_access))
+        {
+        $data_attribute['url'] = $baseurl_short . 'pages/collection_set_category.php?ref=' . $collection_data['ref'];
+        $options[$o]['value']='collection_set_category';
+		$options[$o]['label']=$lang['collection_set_theme_category'];
+		$options[$o]['data_attr']=$data_attribute;
+		$o++;
+        }
+		
     // Request all
     if($count_result > 0 && ($k == '' || $internal_share_access))
         {
@@ -2313,13 +2392,13 @@ function compile_collection_actions(array $collection_data, $top_actions, $resou
         }
 
     // work this out in one place to prevent multiple calls as function is expensive
-    $allow_multi_edit=allow_multi_edit(empty($resource_data) ? $collection_data['ref'] : $resource_data);
+    $allow_multi_edit=allow_multi_edit(empty($resource_data) ? $collection_data['ref'] : $resource_data, $collection_data['ref']);
 
     // Edit all
     # If this collection is (fully) editable, then display an edit all link
     if(($k=="" || $internal_share_access) && $show_edit_all_link && $count_result>0)
         {
-        if(!$edit_all_checkperms || $allow_multi_edit)
+        if($allow_multi_edit)
             {
             $extra_tag_attributes = sprintf('
                     data-url="%spages/edit.php?collection=%s"
@@ -2463,7 +2542,7 @@ function compile_collection_actions(array $collection_data, $top_actions, $resou
 		}
 
     // Add extra collection actions and manipulate existing actions through plugins
-    $modified_options = hook('render_actions_add_collection_option', '', array($top_actions,$options));
+    $modified_options = hook('render_actions_add_collection_option', '', array($top_actions,$options,$collection_data));
     if(is_array($modified_options) && !empty($modified_options))
 		{
         $options=$modified_options;
@@ -2499,3 +2578,85 @@ function makeFilenameUnique($base_values, $filename, $dupe_string, $extension, $
     // Doing $dupe_increment = null, ++$dupe_increment results in $dupe_increment = 1
     return makeFilenameUnique($base_values, $filename, $dupe_string, $extension, ++$dupe_increment);
     }
+
+/**
+* Show the new featured collection form.
+*
+* @param array $themearray array of theme levels at which featured collection will be created 
+* 
+* @return void
+*/
+function new_featured_collection_form(array $themearray = array())
+    {
+    global $lang;
+
+    $themes_count = count($themearray);
+    ?>
+    <div class="BasicsBox">
+        <h1><?php echo $lang["createnewcollection"] ?></h1>
+        <form id="new_collection_form" name = "new_collection_form" class="modalform" action="<?php echo $_SERVER['PHP_SELF'] ?>" onsubmit="return CentralSpacePost(this,true);" >
+            <div class="Question">
+                <label for="collectionname" ><?php echo $lang["collectionname"] ?></label>
+                <input type="text" name="collectionname"></input>
+                <div class="clearleft"></div>
+            </div>
+
+        <?php
+        if(0 < $themes_count)
+            {
+            ?>
+            <div class="Question">
+                <label for="location" ></label>
+                <div>
+                    <input type="radio"
+                           name="location" 
+                           value="root" 
+                           onclick="jQuery('#theme_category_name').slideUp();"
+                           checked
+                           ><?php echo "&nbsp;" . $lang["create_new_here"]; ?></input>
+                </div>
+                <label for="location" ></label>
+                <div>
+                    <input type="radio"
+                           name="location"
+                           value="subfolder"
+                           onclick="jQuery('#theme_category_name').slideDown();"
+                           ><?php echo "&nbsp;" . $lang["create_new_below"]; ?></input>
+                </div>
+                <div class="clearleft"></div>
+            </div>
+            <?php
+            }
+            ?>
+            <div class="Question" id="theme_category_name" <?php if($themes_count > 0) {?>style="display:none;" <?php }?></div>
+                <label for="category_name" ><?php echo $lang["themecategory"] ?></label>
+                <input type="text" name="category_name"></input>
+                <div class="clearleft"></div>
+            </div>
+        <?php
+        for($n = 0; $n < $themes_count; $n++)
+            {
+            echo "<input type='hidden' name='theme" . ($n > 0 ? $n + 1 : "") . "' value='" . $themearray[$n] . "'></input>";
+            }
+
+        // Root level does not allow collections so the only option for the user is to just create a featured collection
+        // category level
+        if(0 === $themes_count)
+            {
+            ?>
+            <input type="hidden" name="location" value="subfolder">
+            <?php
+            }
+            ?>
+            <input type='hidden' name='create' value='true'></input>
+            <div class="QuestionSubmit" >
+                <label></label>
+                <input type="submit" name="create" value="<?php echo $lang["create"] ?>"></input>
+                <div class="clearleft"></div>
+            </div>
+        </form>
+    </div>
+    <?php
+
+    return;
+	}

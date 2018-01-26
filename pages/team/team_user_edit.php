@@ -66,6 +66,12 @@ if (!checkperm_user_edit($user))
 
 include "../../include/header.php";
 
+if ($user == ''){
+	echo $lang["accountdoesnotexist"];
+	include "../../include/footer.php";
+	exit();
+	}
+	
 # Log in as this user?
 if (getval("loginas","")!="")
 	{
@@ -130,7 +136,8 @@ if(!$modal)
 if (($user["login_tries"]>=$max_login_attempts_per_username) && (strtotime($user["login_last_try"]) > (time() - ($max_login_attempts_wait_minutes * 60))))
  {?>
 	<div class="Question"><label><strong><?php echo $lang["accountlockedstatus"]?></strong></label>
-		<input class="medcomplementwidth" type=submit name="unlock" value="<?php echo $lang["accountunlock"]?>" />
+		<input class="medcomplementwidth" type=submit name="unlock" value="<?php echo $lang["accountunlock"]?>" onclick="jQuery('#unlockuser').val('true');"/>
+		<input id="unlockuser" type=hidden name="unlock" value="" />
 	</div>
 
 	<div class="clearerleft"> </div>
@@ -224,31 +231,17 @@ if ($user_edit_created_by)
 
 
 <?php 
-# Only allow sending of password when this is not an MD5 string (i.e. only when first created or 'Suggest' is used).
-
-if (!hook("ticktoemailpassword")) 
-	{
-	if($allow_password_email) // Let's hope this is not enabled
-		{
-		?>
-		<div class="Question"><label><?php echo $lang["ticktoemail"]?></label>
-		<?php if (strlen($user["password"])!=64) { ?>
-		<input name="emailme" type="checkbox" value="yes" <?php if ($user["approved"]==0) { ?>checked<?php } ?>>
-		<?php } else { ?>
-		<div class="Fixed"><?php echo $lang["cannotemailpassword"]?></div>
-		<?php } ?><?php hook('emailpassword'); ?>
-		<div class="clearerleft"> </div></div>
-		<?php 
-		} 
-	else
-		{
-		?>
-		<div class="Question"><label><?php echo $lang["ticktoemaillink"]?></label>
-		<input name="emailresetlink" type="checkbox" value="yes" <?php if ($user["approved"]==0) { ?>checked<?php } ?>>
-		<div class="clearerleft"> </div></div>
-		<?php
-		}
-	}?> 
+// Tick to e-mail plain text password is depreacated for security reasons. We can only reset it
+// manually (as an Administrator) or by sending a reset link
+if(!hook('ticktoemailpassword')) 
+    {
+    ?>
+    <div class="Question"><label><?php echo $lang["ticktoemaillink"]?></label>
+    <input name="emailresetlink" type="checkbox" value="yes" <?php if ($user["approved"]==0) { ?>checked<?php } ?>>
+    <div class="clearerleft"> </div></div>
+    <?php
+    }
+    ?> 
 
 <div class="Question"><label><?php echo $lang["approved"]?></label><input name="approved" type="checkbox"  value="yes" <?php if ($user["approved"]==1) { ?>checked<?php } ?>>
 <?php if ($user["approved"]==0) { ?><div class="FormError">!! <?php echo $lang["ticktoapproveuser"]?> !!</div><?php } ?>
@@ -271,7 +264,6 @@ if ($user_edit_approved_by && $user["approved"]==1)
 
 <div class="Question"><label><?php echo $lang["ticktodelete"]?></label><input name="deleteme" type="checkbox"  value="yes"><div class="clearerleft"> </div></div>
 <?php hook("additionaluserlinks");?>
-<?php if ($user["approved"]==1 && !hook("loginasuser")) { ?>
 
 <div class="Question">
 <label><?php echo $lang["team_user_contributions"]?></label>
@@ -282,6 +274,7 @@ if ($user_edit_approved_by && $user["approved"]==1)
 <div class="Fixed"><a href="<?php echo $baseurl_short ?>pages/admin/admin_system_log.php?actasuser=<?php echo $ref ?>&backurl=<?php echo urlencode($url) ?>" onClick="return CentralSpaceLoad(this,true);"><?php echo LINK_CARET ?><?php echo $lang["clicktoviewlog"]?></a></div>
 <div class="clearerleft"> </div></div>
 
+<?php if ($user["approved"]==1 && !hook("loginasuser")) { ?>
 <div class="Question"><label><?php echo $lang["login"]?></label>
 <div class="Fixed"><a href="<?php echo $baseurl_short?>pages/team/team_user_edit.php?ref=<?php echo $ref?>&loginas=true"><?php echo LINK_CARET ?><?php echo $lang["clicktologinasthisuser"]?></a></div>
 <div class="clearerleft"> </div></div>

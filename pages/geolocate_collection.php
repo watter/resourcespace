@@ -81,8 +81,8 @@ foreach ($all_resources as $value)
 
 		<tr>
 		<td><?php echo $resource['ref']?></td>
-		<td><a href=<?php echo $baseurl . "/pages/view.php?ref=" . $resource['ref'] ?> > <img  src=<?php echo '..' . $parts[0]?> </img></a></td>
-		<?php if (get_edit_access($resource['ref'])){?><td><a href=<?php echo $baseurl . "/pages/geo_edit.php?ref=" . $resource['ref'] ?> > <?php echo $lang['location-add']?></a></td><?php } else { ?><td> <?php echo $lang['location-noneselected'];?> </td><?php } ?>
+		<td><a href=<?php echo $baseurl . "/pages/view.php?ref=" . $resource['ref'] ?> onclick="return <?php echo ($resource_view_modal?"Modal":"CentralSpace") ?>Load(this, true);"> <img  src=<?php echo '..' . $parts[0]?> </img></a></td>
+		<?php if (get_edit_access($resource['ref'])){?><td><a href=<?php echo $baseurl . "/pages/geo_edit.php?ref=" . $resource['ref'] . "&geocol=" . $ref ?> > <?php echo $lang['location-add']?></a></td><?php } else { ?><td> <?php echo $lang['location-noneselected'];?> </td><?php } ?>
 		</tr>
 		
 		<?php
@@ -99,7 +99,7 @@ foreach ($all_resources as $value)
 }
 
 ?>
-<?php if ($check){?></table><?php echo "<br>";}
+<?php if ($check){?></table><?php echo "<br />";}
 
 //exit if there are no assets to put on the map
 if (count($markers)==0) {exit;}?>

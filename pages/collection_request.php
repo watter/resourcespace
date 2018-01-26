@@ -2,6 +2,7 @@
 include "../include/db.php";
 include_once "../include/general.php";
 include_once "../include/collections_functions.php";
+include_once "../include/search_functions.php";
 $ref=getval("ref","",true);
 $k=getvalescaped("k","");if ($k=="" || !check_access_key_collection($ref,$k)) {include "../include/authenticate.php";}
 
@@ -15,6 +16,11 @@ if ($k!="" && (!isset($internal_share_access) || !$internal_share_access) && $pr
 	exit();
 	}
 
+if($ref=="" && isset($usercollection))
+  {
+  $ref = $usercollection;
+  }
+  
 $cinfo=get_collection($ref);
 $error=false;
 
@@ -43,7 +49,11 @@ if (getval("save","")!="")
 		}
 	else
 		{
-		redirect("pages/done.php?text=resource_request&k=" . $k);
+		?>
+		<script>
+		CentralSpaceLoad("<?php echo $baseurl_short ?>pages/done.php?text=resource_request&k=<?php echo htmlspecialchars($k); ?>",true);
+		</script>
+		<?php
 		}
 	}
 include "../include/header.php";
@@ -64,13 +74,13 @@ include "../include/header.php";
   <h1><?php echo $lang["requestcollection"]?></h1>
   <p><?php echo text("introtext")?></p>
   
-	<form method="post" action="<?php echo $baseurl_short?>pages/collection_request.php">  
+	<form method="post" onsubmit="return CentralSpacePost(this,true);" action="<?php echo $baseurl_short?>pages/collection_request.php">  
 	<input type=hidden name=ref value="<?php echo htmlspecialchars($ref) ?>">
 	<input type=hidden name="k" value="<?php echo htmlspecialchars($k) ?>">
 	
 	<div class="Question">
 	<label><?php echo $lang["collectionname"]?></label>
-	<div class="Fixed"><?php echo htmlspecialchars($cinfo["name"]) ?></div>
+	<div class="Fixed"><?php echo htmlspecialchars(i18n_get_collection_name($cinfo)); ?></div>
 	<div class="clearerleft"> </div>
 	</div>
 
@@ -171,7 +181,8 @@ if (isset($custom_request_fields))
 	<?php if ($error) { ?><div class="FormError">!! <?php echo $error ?> !!</div><?php } ?>
 	<label for="buttons"> </label>			
 	<input name="cancel" type="button" value="&nbsp;&nbsp;<?php echo $lang["cancel"]?>&nbsp;&nbsp;" onclick="document.location='<?php echo $baseurl_short?>pages/search.php?search=!collection<?php echo urlencode($ref) ?>';"/>&nbsp;
-	<input name="save" type="submit" value="&nbsp;&nbsp;<?php echo $lang["requestcollection"]?>&nbsp;&nbsp;" />
+	<input name="save" value="true" type="hidden" />
+	<input type="submit" value="&nbsp;&nbsp;<?php echo $lang["requestcollection"]?>&nbsp;&nbsp;" />
 	</div>
 	</form>
 	

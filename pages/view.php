@@ -13,6 +13,7 @@ include_once "../include/search_functions.php";
 include_once "../include/resource_functions.php";
 include_once "../include/collections_functions.php";
 include_once "../include/image_processing.php";
+include_once '../include/render_functions.php';
 
 // Set a flag for logged in users if $external_share_view_as_internal is set and logged on user is accessing an external share
 $internal_share_access = ($k!="" && $external_share_view_as_internal && isset($is_authenticated) && $is_authenticated);
@@ -256,7 +257,6 @@ function check_view_display_condition($fields,$n)
 	$displaycondition=true;
 	if ($fields[$n]["display_condition"]!="")
 		{
-		//echo $fields[$n]["display_condition"] . "<br>";
 		$fieldstocheck=array(); #' Set up array to use in jQuery script function
 		$s=explode(";",$fields[$n]["display_condition"]);
 		$condref=0;
@@ -543,7 +543,7 @@ $urlparams= array(
 
 
 # Check if actually coming from a search, but not if a numeric search and config_search_for_number is set or if this is a direct request e.g. ?r=1234.
-if (isset($_GET["search"]) && !($config_search_for_number && is_numeric($usearch))) { ?>
+if (!hook("replaceviewnav") && isset($_GET["search"]) && !($config_search_for_number && is_numeric($usearch))) { ?>
 <div class="backtoresults">
 <a class="prevLink fa fa-arrow-left" href="<?php echo generateURL($baseurl_short . "pages/view.php",$urlparams, array("go"=>"previous")) . "&amp;" .  hook("nextpreviousextraurl") ?>" onClick="return <?php echo ($modal?"Modal":"CentralSpace") ?>Load(this);" title="<?php echo $lang["previousresult"]?>"></a>
 <?php 
@@ -571,7 +571,9 @@ else if($modal)
 	{
 	?>
 	<div class="backtoresults">
+		<?php if (!hook("replacemaxlink")) { ?>
 		<a href="<?php echo generateURL($baseurl_short . "pages/view.php",$urlparams) ?>" onClick="return CentralSpaceLoad(this);" class="maxLink fa fa-expand" title="<?php echo $lang["maximise"]?>"></a>
+		<?php } ?>
 		<a href="#" onClick="ModalClose();" class="closeLink fa fa-times" title="<?php echo $lang["close"] ?>"></a>
 	</div>
 	<?php
@@ -712,17 +714,25 @@ elseif ($resource['file_extension']=="swf" && $display_swf){
 else if(1 == $resource['has_image'])
     {
     $use_watermark = check_use_watermark();
-    $imagepath     = get_resource_path($ref, true, 'pre', false, $resource['preview_extension'], true, 1, $use_watermark);
-
+	$use_size="pre";
+    $imagepath     = get_resource_path($ref, true, $use_size, false, $resource['preview_extension'], true, 1, $use_watermark);
+	
+	# Retina mode. Get scr if it exists
+	if ($retina_mode)
+		{
+		$imagepath_retina     = get_resource_path($ref, true, 'scr', false, $resource['preview_extension'], true, 1, $use_watermark);
+		if (file_exists($imagepath_retina)) {$imagepath=$imagepath_retina;$use_size="scr";}
+		}
+	
+	# Fall back to thumbnail if pre doesn't exist	
     if(!file_exists($imagepath))
         {
-        $imageurl = get_resource_path($ref, false, 'thm', false, $resource['preview_extension'], true, 1, $use_watermark);
-        }
-    else
-        {
-        $imageurl = get_resource_path($ref, false, ($retina_mode ? 'scr' : 'pre'), false, $resource['preview_extension'], true, 1, $use_watermark);
-        }
-        ?>
+		$use_size="thm";
+		}
+	
+    $imageurl = get_resource_path($ref, false, $use_size, false, $resource['preview_extension'], true, 1, $use_watermark);
+        
+	if (!hook("replacepreviewlink")) { ?>
     <div id="previewimagewrapper">
         <a id="previewimagelink"
            class="enterLink"
@@ -730,7 +740,8 @@ else if(1 == $resource['has_image'])
            title="<?php echo $lang["fullscreenpreview"]; ?>"
            style="position:relative;"
            onclick="return CentralSpaceLoad(this);">
-    <?php
+		<?php } 
+
     if(file_exists($imagepath))
         {
         list($image_width, $image_height) = @getimagesize($imagepath);
@@ -1385,7 +1396,7 @@ if (isset($flv_download) && $flv_download)
 	<td class="DownloadFileSize"><?php echo formatfilesize(filesize_unlimited($flvfile))?></td>
 	<td <?php hook("modifydownloadbutton") ?> class="DownloadButton">
 	<?php if (!$direct_download || $save_as){?>
-		<a href="<?php echo $baseurl_short?>pages/terms.php?ref=<?php echo urlencode($ref)?>&search=<?php echo urlencode($search); ?>&k=<?php echo urlencode($k)?>&url=<?php echo urlencode("pages/download_progress.php?ref=" . $ref . "&ext=" . $ffmpeg_preview_extension . "&size=pre&k=" . $k . "&search=" . urlencode($search) . "&offset=" . $offset . "&archive=" . $archive . "&sort=".$sort."&order_by=" . urlencode($order_by))?>"  onClick="return CentralSpaceLoad(this,true);"><?php echo $lang["action-download"] ?></a>
+		<a href="<?php echo generateURL($baseurl_short . "pages/terms.php",$urlparams,array("url"=>generateURL("pages/download_progress.php",$urlparams,array("ext"=>$ffmpeg_preview_extension,"size"=>"pre")))) ?>"  onClick="return CentralSpaceLoad(this,true);"><?php echo $lang["action-download"] ?></a>
 	<?php } else { ?>
 		<a href="#" onclick="directDownload('<?php echo $baseurl_short?>pages/download_progress.php?ref=<?php echo urlencode($ref)?>&ext=<?php echo $ffmpeg_preview_extension?>&size=pre&k=<?php echo urlencode($k)?>')"><?php echo $lang["action-download"]?></a>
 	<?php } // end if direct_download ?></td>
@@ -1393,7 +1404,7 @@ if (isset($flv_download) && $flv_download)
 	<?php
 	}
 
-hook("additionalresourcetools2");
+hook('additionalresourcetools2', '', array($resource, $access));
 	
 include "view_alternative_files.php";
 
@@ -1476,7 +1487,7 @@ hook ("resourceactions") ?>
 			{
 			?>
 			<li>
-			<a href="<?php echo $baseurl_short?>pages/delete.php?ref=<?php echo urlencode($ref)?>&amp;search=<?php echo urlencode($search)?>&amp;offset=<?php echo urlencode($offset)?>&amp;order_by=<?php echo urlencode($order_by)?>&amp;sort=<?php echo urlencode($sort)?>&amp;archive=<?php echo urlencode($archive)?>" onClick="return CentralSpaceLoad(this,true);">
+			<a href="<?php echo $baseurl_short?>pages/delete.php?ref=<?php echo urlencode($ref)?>&amp;search=<?php echo urlencode($search)?>&amp;offset=<?php echo urlencode($offset)?>&amp;order_by=<?php echo urlencode($order_by)?>&amp;sort=<?php echo urlencode($sort)?>&amp;archive=<?php echo urlencode($archive)?>" onClick="return ModalLoad(this,true);">
 			<?php 
 			if ($resource["archive"]==3)
 				{
@@ -1699,7 +1710,7 @@ if ($metadata_report && isset($exiftool_path) && ($k=="" || $internal_share_acce
         <div class="RecordBox">
         <div class="RecordPanel">  
         <div class="Title"><?php echo $lang['metadata-report']?></div>
-        <div id="<?php echo $context ?>metadata_report"><a onclick="metadataReport(<?php echo htmlspecialchars($ref)?>,'<?php echo $context ?>');document.getElementById('<?php echo $context ?>metadata_report').innerHTML='<?php echo $lang['pleasewait']?>';return false;" class="itemNarrow" href="#"> <?php echo LINK_CARET . $lang['viewreport'];?></a><br></div>
+        <div id="<?php echo $context ?>metadata_report"><a onclick="metadataReport(<?php echo htmlspecialchars($ref)?>,'<?php echo $context ?>');document.getElementById('<?php echo $context ?>metadata_report').innerHTML='<?php echo $lang['pleasewait']?>';return false;" class="itemNarrow" href="#"> <?php echo LINK_CARET . $lang['viewreport'];?></a><br /></div>
         </div>
         
         </div>

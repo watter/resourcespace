@@ -4,26 +4,50 @@ include "../../../include/authenticate.php"; if (!checkperm("u")) {exit ("Permis
 include_once "../../../include/general.php";
 
 
-$simpleldap['domain'] = getvalescaped('domain','');
-$simpleldap['ldapserver'] = getvalescaped('ldapserver','');
-$simpleldap['ldapuser'] = getvalescaped('ldapuser','');
-$simpleldap['ldappassword'] = getvalescaped('ldappassword','');
-$userdomain = getvalescaped('userdomain','');
-$simpleldap['port'] = getvalescaped('port','');
-$simpleldap['ldaptype'] = getvalescaped('ldaptype',1);
-$simpleldap['basedn']= getvalescaped('basedn','');
-$simpleldap['loginfield'] = getvalescaped('loginfield','');
-$simpleldap['ldapgroupfield'] = getvalescaped('ldapgroupfield','');
-$simpleldap['email_attribute'] = getvalescaped('email_attribute','');
-$simpleldap['phone_attribute'] = getvalescaped('phone_attribute','');
+$simpleldap['domain']                = getvalescaped('domain', '');
+$simpleldap['ldapserver']            = getvalescaped('ldapserver', '');
+$simpleldap['ldapuser']              = getvalescaped('ldapuser', '');
+$simpleldap['ldappassword']          = getvalescaped('ldappassword', '');
+$userdomain                          = getvalescaped('userdomain', '');
+$simpleldap['port']                  = getvalescaped('port', '');
+$simpleldap['ldaptype']              = getvalescaped('ldaptype', 1);
+$simpleldap['basedn']                = getvalescaped('basedn', '');
+$simpleldap['loginfield']            = getvalescaped('loginfield', '');
+$simpleldap['ldapgroupfield']        = getvalescaped('ldapgroupfield', '');
+$simpleldap['email_attribute']       = getvalescaped('email_attribute', '');
+$simpleldap['phone_attribute']       = getvalescaped('phone_attribute', '');
+$simpleldap['LDAPTLS_REQCERT_never'] = getvalescaped('LDAPTLS_REQCERT_never', false);
 
 // Test we can connect to domain
 $bindsuccess=false;	
-$ds = ldap_connect( $simpleldap['ldapserver'],$simpleldap['port'] );	
-if(!isset($simpleldap['ldaptype']) || $simpleldap['ldaptype']==1) 
+
+if($simpleldap['LDAPTLS_REQCERT_never'])
+    {
+    putenv('LDAPTLS_REQCERT=never');
+    }
+
+if($simpleldap['port'] == 636)
+    {
+    $ds = ldap_connect("ldaps://{$simpleldap['ldapserver']}:{$simpleldap['port']}");
+    }
+else
+    {
+    $ds = ldap_connect($simpleldap['ldapserver'], $simpleldap['port']);
+    }
+
+if(!isset($simpleldap['ldaptype']) || $simpleldap['ldaptype'] == 1) 
 	{
-	$binduserstring = $simpleldap['ldapuser'] . "@" . $userdomain;
+    if(strpos($simpleldap['ldapuser'], $userdomain) !== false)
+        {
+        $binduserstring = $simpleldap['ldapuser'];
+        }
+    else
+        {
+        $binduserstring = "{$simpleldap['ldapuser']}@{$userdomain}";
+        }
+
 	debug("LDAP - Attempting to bind to AD server as : " . $binduserstring);
+
 	$login = @ldap_bind( $ds, $binduserstring, $simpleldap['ldappassword'] );
 	if ($login)
 		{
@@ -47,8 +71,8 @@ else
 		}
 	}			
 	
-$response['bindsuccess']=$bindsuccess?$lang["status-ok"]:$lang["status-fail"];	
-$response['memberof'] = array();
+$response['bindsuccess'] = $bindsuccess ? $lang['status-ok'] : "{$lang['status-fail']} - " . ldap_error($ds) . ' (#' . ldap_errno($ds) . ')';
+$response['memberof']    = array();
 
 $userdetails=simpleldap_authenticate($simpleldap['ldapuser'],$simpleldap['ldappassword']);
 

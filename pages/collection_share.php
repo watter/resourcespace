@@ -5,6 +5,7 @@ include "../include/authenticate.php";
 include "../include/search_functions.php";
 include "../include/resource_functions.php";
 include_once "../include/collections_functions.php";
+include_once '../include/render_functions.php';
 
 // Fetch vars
 $ref        = getvalescaped('ref', '', true);
@@ -47,7 +48,7 @@ if(is_array($collectionstates) && (count($collectionstates)>1 || !in_array(0,$co
 	$warningtext=$lang["collection_share_status_warning"];
 	foreach($collectionstates as $collectionstate)
 		{
-		$warningtext.="<br>" . $lang["status" . $collectionstate];
+		$warningtext.="<br />" . $lang["status" . $collectionstate];
 		}
 	}
 
@@ -227,7 +228,7 @@ include "../include/header.php";
 			
 			<?php hook("additionalcollectionshare");?>
 			
-			<div class="QuestionSubmit" style="padding-top:0;margin-top:0;">
+			<div class="QuestionSubmit">
 			<label for="buttons"> </label>
 			<?php 
 			if ($editing  && !$editexternalurl)
@@ -306,7 +307,6 @@ include "../include/header.php";
 	if(!$internal_share_only)
 		{?>
 		<h2><?php echo $lang["externalusersharing"]?></h2>
-		<div class="Question">
 
 		<?php
 		$keys=get_collection_external_access($ref);
@@ -329,6 +329,7 @@ include "../include/header.php";
 			<td><?php echo $lang["lastused"];?></td>
 			<td><?php echo $lang["expires"];?></td>
 			<td><?php echo $lang["access"];?></td>
+			<td><?php echo $lang['social_media']; ?></td>
 			<?php hook("additionalcolexternalshareheader");?>
 			<td><div class="ListTools"><?php echo $lang["tools"]?></div></td>
 			</tr>
@@ -344,6 +345,7 @@ include "../include/header.php";
 				<td><?php echo htmlspecialchars(nicedate($keys[$n]["lastused"],true)); ?></td>
 				<td><?php echo htmlspecialchars(($keys[$n]["expires"]=="")?$lang["never"]:nicedate($keys[$n]["expires"],false)) ?></td>
 				<td><?php echo htmlspecialchars(($keys[$n]["access"]==-1)?"":$lang["access" . $keys[$n]["access"]]); ?></td>
+                <td><?php renderSocialMediaShareLinksForUrl(generateURL($baseurl, array('c' => $ref, 'k' => $keys[$n]['access_key']))); ?></td>
 				<?php hook("additionalcolexternalsharerecord");?>
 				<td><div class="ListTools">
 				<a href="#" onClick="if (confirm('<?php echo $lang["confirmdeleteaccess"]?>')) {document.getElementById('deleteaccess').value='<?php echo htmlspecialchars($keys[$n]["access_key"]) ?>';document.getElementById('collectionform').submit(); return false;}"><?php echo LINK_CARET ?><?php echo $lang["action-delete"]?></a>
@@ -358,7 +360,6 @@ include "../include/header.php";
 			<?php
 			}
 		?>
-		</div>	
 		
 		<?php
 		}

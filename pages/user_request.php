@@ -116,28 +116,9 @@ include "../include/header.php";
 
 if($login_background)
 	{
-    $backimageurl = "";
-    $dir = dirname(__FILE__) . "/../" . $homeanim_folder;
-    $d = scandir($dir);    
-	sort($d, SORT_NUMERIC);
-    foreach ($d as $f) 
-		{ 
-		if(preg_match("/[0-9]+\.(jpg)$/",$f))
-            {
-            $backimageurl= $baseurl_short . $homeanim_folder . "/" . $f;  
-            break;    
-            }
-        }
-	?>
-	<style>
-	#UICenter {
-		background-image: url('<?php echo $backimageurl; ?>');
-		}
-	</style>
-	<?php
+    include "../include/login_background.php";
 	}
 ?>
-<div id="login_box">
 <h1><?php echo $lang["requestuserlogin"]?></h1>
 <p><?php echo text("introtext")?></p>
 
@@ -353,7 +334,7 @@ if(!hook("replaceantispam"))
         height:50px;
         margin-left: 300px;
         text-indent:1.5em;
-        ">    
+        " id="AntiSpamImage">    
     </div>
         
 	<div class="clearerleft"> </div>    	
@@ -376,8 +357,13 @@ if(!hook("replace_user_request_required_key"))
 	<p><sup>*</sup> <?php echo $lang["requiredfield"] ?></p>
 	<?php
 	}
+if($login_background)
+        {
+        ?>
+        <div> <!-- end of login_box -->
+        <?php
+        }
 ?>
-</div><!-- end of login_box -->
 <?php
 include "../include/footer.php";
 

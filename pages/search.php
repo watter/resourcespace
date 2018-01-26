@@ -12,8 +12,9 @@ if($annotate_enabled)
 
 
 # External access support (authenticate only if no key provided, or if invalid access key provided)
-$s=explode(" ",getvalescaped("search",""));
-$k=getvalescaped("k","");
+$s = explode(" ",getvalescaped("search",""));
+$k = getvalescaped("k","");
+$resetlockedfields = getvalescaped("resetlockedfields","") != "";
 
 if (($k=="") || (!check_access_key_collection(str_replace("!collection","",$s[0]),$k))) {include "../include/authenticate.php";}
 
@@ -46,6 +47,7 @@ if ($k!="" && !$internal_share_access) {$use_checkboxes_for_selection=false;}
 
 $search = getvalescaped('search', '');
 $modal  = ('true' == getval('modal', ''));
+$collection_add=getvalescaped("collection_add",""); // Need this if redirected here from upload
 
 if(false !== strpos($search, TAG_EDITOR_DELIMITER))
 	{
@@ -98,19 +100,30 @@ foreach($keywords as $keyword)
 		}
 
 	$nodes = get_nodes($resource_type_field, null, true);
-	$node_found = get_node_by_name($nodes, $specific_field_search[1]);
+    
+    // Check if multiple nodes have been specified for an OR search
+    $keywords_expanded=explode(';',$specific_field_search[1]);
+    $subnodestring = "";
+    foreach($keywords_expanded as $keyword_expanded)
+        {
+        $node_found = get_node_by_name($nodes, $keyword_expanded);
 
-	if(0 < count($node_found))
-		{
-		$search = str_ireplace($keyword, NODE_TOKEN_PREFIX . $node_found['ref'], $search);
-		}
+        if(0 < count($node_found))
+            {
+            $subnodestring .= NODE_TOKEN_PREFIX . $node_found['ref'];
+            }
+        }
+    if($subnodestring != "")
+        {
+        $search = str_ireplace($keyword, $subnodestring, $search);
+        }
 	}
-
+    
 # create a display_fields array with information needed for detailed field highlighting
 $df=array();
 
 
-$all_field_info=get_fields_for_search_display(array_unique(array_merge($sort_fields,$thumbs_display_fields,$list_display_fields,$xl_thumbs_display_fields,$small_thumbs_display_fields)));
+$all_field_info=get_fields_for_search_display(array_unique(array_merge($sort_fields,$thumbs_display_fields,$list_display_fields)));
 
 # get display and normalize display specific variables
 $display=getvalescaped("display",$default_display);rs_setcookie('display', $display);
@@ -122,22 +135,10 @@ switch ($display)
 		$results_title_trim = $list_search_results_title_trim;
 		break;
 		
-	case "smallthumbs":
-		$display_fields	= $small_thumbs_display_fields; 
-		if (isset($small_search_result_title_height)) { $result_title_height = $small_search_result_title_height; }
-		$results_title_trim = $small_search_results_title_trim;
-		$results_title_wordwrap = $small_search_results_title_wordwrap;
-		break;
-		
-	case "xlthumbs":	 
-		$display_fields = $xl_thumbs_display_fields;
-		if (isset($xl_search_result_title_height)) { $result_title_height = $xl_search_result_title_height; }
-		$results_title_trim = $xl_search_results_title_trim;
-		$results_title_wordwrap = $xl_search_results_title_wordwrap;
-		break;
-		
+	case "xlthumbs":	 		
 	case "thumbs": 
 	case "strip":
+        
 	default:
 		$display_fields	= $thumbs_display_fields;  
 		if (isset($search_result_title_height)) { $result_title_height = $search_result_title_height; }
@@ -359,6 +360,13 @@ if(false === strpos($search, '!'))
     rs_setcookie('saved_archive', $archive);
     }
 
+if($resetlockedfields)
+    {
+    // Reset locked metadata fields cookie after editing resources in upload_review_mode
+    rs_setcookie('lockedfields', '');
+    }
+
+
 $jumpcount=0;
 
 if (getvalescaped('recentdaylimit', '', true)!="") //set for recent search, don't set cookie
@@ -375,7 +383,14 @@ else {$daylimit="";} // clear cookie for new search
 # Most sorts such as popularity, date, and ID should be descending by default,
 # but it seems custom display fields like title or country should be the opposite.
 $default_sort_direction="DESC";
-if (substr($order_by,0,5)=="field"){$default_sort_direction="ASC";}
+if (substr($order_by,0,5)=="field")
+    {
+    $default_sort_direction="ASC";
+    }
+if ($order_by=="field{$date_field}")
+    {
+    $default_sort_direction="DESC";
+    }
 $sort=getvalescaped("sort",$default_sort_direction);rs_setcookie('saved_sort', $sort);
 $revsort = ($sort=="ASC") ? "DESC" : "ASC";
 
@@ -566,13 +581,7 @@ if($k=="" || $internal_share_access)
 	</script>
  	<?php
 	}
-if ($display_user_rating_stars && ($k=="" || $internal_share_access))
-	{
-	if (!hook("replace_user_rating_searchviewjs")){?>
-	<script src="<?php echo $baseurl ?>/lib/js/user_rating_searchview.js?1" type="text/javascript"></script>
-	<?php
-	}
-	}
+
 
 // Allow Drag & Drop from collection bar to CentralSpace only when special search is "!collection"
 if($collectionsearch && collection_writeable(substr($search, 11)))
@@ -580,9 +589,10 @@ if($collectionsearch && collection_writeable(substr($search, 11)))
 	?>
 	<script>
 		jQuery(document).ready(function() {
-		if(jQuery(window).width()<600 && jQuery(window).height()<600 && is_touch_device()) {
+		if(is_touch_device())
+			{
 			return false;
-		}
+			}
 			jQuery('#CentralSpaceResources').droppable({
 				accept: '.CollectionPanelShell',
 
@@ -619,8 +629,11 @@ if(!$collectionsearch)
 	<!-- Search items should only be draggable if results are not a collection -->
 	<script>	
 	jQuery(document).ready(function() {
-		if(jQuery(window).width()<600 && jQuery(window).height()<600 && is_touch_device()) {return false;}
-		jQuery('#CentralSpaceResources .ResourcePanelShell, .ResourcePanelShellLarge, .ResourcePanelShellSmall').draggable({
+		if(is_touch_device())
+			{
+			return false;
+			}
+		jQuery('.ResourcePanel').draggable({
 			distance: 50,
 			connectWith: '#CollectionSpace',
 			appendTo: 'body',
@@ -643,7 +656,7 @@ if(!$collectionsearch)
 	<?php
 	}
 	
-	if ($allow_reorder && $display!="list") {
+if ($allow_reorder && $display!="list") {
 ?>
 	<script type="text/javascript">
 	var allow_reorder = true;
@@ -665,7 +678,10 @@ if(!$collectionsearch)
 		});
 	}
 	jQuery('#CentralSpace').on('CentralSpaceSortable', function() {
-		if(jQuery(window).width()<600 && jQuery(window).height()<600 && is_touch_device()) {return false;}
+		if(is_touch_device())
+			{
+			return false;
+			}
         jQuery('.ui-sortable').sortable('enable');
 		jQuery('#CentralSpaceResources').sortable({
 			connectWith: '#CollectionSpace',
@@ -684,7 +700,7 @@ if(!$collectionsearch)
 				
 				return jQuery('#CentralSpaceResourceClone');
 				},
-			items: '.ResourcePanelShell, .ResourcePanelShellLarge, .ResourcePanelShellSmall',
+			items: '.ResourcePanel',
 			cancel: '.DisableSort',
 			
 			start: function (event, ui)
@@ -758,24 +774,49 @@ if(!$collectionsearch)
 
 if(getval("promptsubmit","")!= "" && getval("archive","")=="-2" && checkperm("e-1"))
 	{
-	// User has come here from upload. Show a prompt to submit the resources in current collection for review
+	// User has come here from upload. Show a prompt to submit the resources for review
 	?>
 	<script>	
 	jQuery(document).ready(function() {
+        jQuery("#modal_dialog").html('<?php echo $lang["submit_dialog_text"]; ?>');
 		jQuery("#modal_dialog").dialog({
-							    	title:'<?php echo $lang["submit_dialog_text"]; ?>',
+							    	title:'<?php echo $lang["submit_review_prompt"]; ?>',
 							    	modal: true,
+                                    width: 400,
 									resizable: false,
 									dialogClass: 'no-close',
 							        buttons: {
 							            "<?php echo $lang['action_submit_review'] ?>": function() {
-							            		jQuery(this).dialog("close");
-												window.location.href='<?php echo $baseurl_short?>pages/edit.php?submitted=true&editthis_status=true&collection=<?php echo $usercollection ?>&status=-1';
+							            		jQuery.ajax({
+                                                    type: "POST",
+                                                    dataType: "json",
+                                                    url: baseurl_short+"pages/ajax/user_action.php",
+                                                    data: {
+                                                        "action" : "submitpending",
+                                                        "collection_add" : "<?php echo $collection_add ?>"
+                                                    },
+                                                    success: function(response){
+                                                            <?php
+                                                            if(is_numeric($collection_add))
+                                                                {
+                                                                echo "window.location.href='" .  $baseurl_short . "pages/search.php?search=!collection" . $collection_add . "';";
+                                                                }
+                                                            else
+                                                                {
+                                                                echo "window.location.href='" .  $baseurl_short . "pages/search.php?search=!contributions" . $userref . "&archive=-1&order_by=date&sort=desc';";
+                                                                }
+                                                            ?>
+                                                            },
+                                                    error: function(response) {
+                                                        styledalert('<?php echo $lang["error"]; ?>',response['responseJSON']['message']);
+                                                        }
+                                                    });
+                                                
+												
 							            	},    
 							            "<?php echo $lang['action_continue_editing'] ?>": function() { 
 							            		jQuery(this).dialog('close');
 												<?php 
-												$collection_add=getvalescaped("collection_add","");
 												if ($collection_add!="")
 													{?>
 													window.location.href='<?php echo $baseurl_short?>pages/search.php?search=!collection<?php echo $collection_add ?>';
@@ -811,7 +852,14 @@ if (isset($result_title_height))
 if($enable_theme_breadcrumbs && !$search_titles && isset($theme_link) && $k=="")
 	{
 	// Show the themes breadcrumbs if they exist, but not if we are using the search_titles
-	echo "<div class='SearchBreadcrumbs'>" . $theme_link . "&nbsp;" . LINK_CARET . "<span id=\"coltitle" . $collection . "\"><a  href=\"" . generateURL($baseurl_short."pages/search.php",array("search"=>"!collection" . $collection)) . "\" onClick=\"return CentralSpaceLoad(this,true);\">" . i18n_get_collection_name($collectiondata) . "</a></span></div>" ;
+    renderBreadcrumbs(
+        array(
+            array(
+                'title' => i18n_get_collection_name($collectiondata),
+                'href'  => generateURL("{$baseurl_short}pages/search.php", array('search' => "!collection{$collection}"))
+            )
+        ),
+        $theme_link);
 	}
 
 if (!hook("replacesearchheader")) # Always show search header now.
@@ -822,6 +870,7 @@ if (!hook("replacesearchheader")) # Always show search header now.
         $results_count=count($collections)+$resources_count;
     	}
 	?>
+	<div class="BasicsBox">
 	<div class="TopInpageNav">
 	<div class="TopInpageNavLeft">
 
@@ -830,7 +879,7 @@ if($responsive_ui)
     {
     ?>
     <div class="ResponsiveResultDisplayControls">
-        <a href="#" id="Responsive_ResultDisplayOptions" class="ResourcePanel ResponsiveButton" style="display:none;"><?php echo $lang['responsive_result_settings']; ?><span class="glyph glyph_result"></span></a>
+        <a href="#" id="Responsive_ResultDisplayOptions" class="ResourcePanel ResponsiveButton" style="display:none;"><?php echo $lang['responsive_result_settings']; ?></a>
         <div id="ResponsiveResultCount">
             <span class="Selected">
         <?php
@@ -857,7 +906,7 @@ if($responsive_ui)
     }
     hook('responsiveresultoptions');
     ?>
-	<div id="SearchResultFound" class="InpageNavLeftBlock"><?php echo $lang["youfound"]?>:<br /><span class="Selected">
+	<div id="SearchResultFound" class="InpageNavLeftBlock"><span class="Selected">
 	<?php
 	if (isset($collections)) 
 	    {
@@ -872,17 +921,16 @@ if($responsive_ui)
 	if(!hook('replacedisplayselector','',array($search,(isset($collections)?$collections:""))))
 		{
 		?>
-		<div class="InpageNavLeftBlock <?php if($iconthumbs) {echo 'icondisplay';} ?>"><?php echo $lang["display"]?>:<br />
+		<div class="InpageNavLeftBlock <?php if($iconthumbs) {echo 'icondisplay';} ?>"<?php if($xlthumbs) {echo 'style="width: 110px;"';} ?>>
 		<?php	
 		if($display_selector_dropdowns)
 			{
 			?>
-			<select class="medcomplementwidth ListDropdown" style="width:auto" id="displaysize" name="displaysize" onchange="CentralSpaceLoad(this.value,true);">
+			<select style="width:auto" id="displaysize" name="displaysize" onchange="CentralSpaceLoad(this.value,true);">
 			<?php if ($xlthumbs==true) { ?><option <?php if ($display=="xlthumbs"){?>selected="selected"<?php } ?> value="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"xlthumbs")) ?>"><?php echo $lang["xlthumbs"]?></option><?php } ?>
 			<option <?php if ($display=="thumbs"){?>selected="selected"<?php } ?> value="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"thumbs")) ?>"><?php echo $lang["largethumbs"]?></option>
-			<?php if ($smallthumbs==true) { ?><option <?php if ($display=="smallthumbs"){?>selected="selected"<?php } ?> value="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"smallthumbs")) ?>"><?php echo $lang["smallthumbs"]?></option><?php } ?>
 			<?php if ($searchlist==true) { ?><option <?php if ($display=="list"){?>selected="selected"<?php } ?> value="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"list")) ?>"><?php echo $lang["list"]?></option><?php } ?>
-			</select>&nbsp;
+			</select>
 			<?php
 			}
 		elseif($iconthumbs)
@@ -891,68 +939,38 @@ if($responsive_ui)
 				{
 				if($display == 'xlthumbs')
 					{
-					?>
-					<span class="xlthumbsiconactive">&nbsp;</span>
-					<?php
+					?><span class="xlthumbsiconactive"></span><?php
 					}
 				else
 					{
 					?>
 					<a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"xlthumbs")); ?>" title='<?php echo $lang["xlthumbstitle"] ?>' onClick="return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this);">
-						<span class="xlthumbsicon">&nbsp;</span>
+						<span class="xlthumbsicon"></span>
 					</a>
 					<?php
 					}
-					?>&nbsp;
-					<?php
 				}
-	
 			if($display == 'thumbs')
 				{
-				?>
-				<span class="largethumbsiconactive">&nbsp;</span>
-				<?php
+				?><span class="largethumbsiconactive"></span><?php
 				}
 			else
 				{
 				?>
 				<a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"thumbs")); ?>" title='<?php echo $lang["largethumbstitle"] ?>' onClick="return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this);">
-					<span class="largethumbsicon">&nbsp;</span>
+					<span class="largethumbsicon"></span>
 				</a>
 				<?php
 				}
-	
-
-				
-			if($smallthumbs == true)
-				{
-				if($display == 'smallthumbs')
-					{
-					?>
-					<span class="smallthumbsiconactive">&nbsp;</span>
-					<?php
-					}
-				else
-					{
-					?>
-					<a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"smallthumbs")); ?>" title='<?php echo $lang["smallthumbstitle"] ?>' onClick="return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this);">
-						<span class="smallthumbsicon">&nbsp;</span>
-					</a>
-					<?php
-					}
-				}
-				
 			if($display == 'strip')
 				{
-				?>
-				<span class="stripiconactive">&nbsp;</span>
-				<?php
+				?><span class="stripiconactive"></span><?php
 				}
 			else
 				{
 				?>
 				<a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"strip")); ?>" title='<?php echo $lang["striptitle"] ?>' onClick="return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this);">
-					<span class="stripicon">&nbsp;</span>
+					<span class="stripicon"></span>
 				</a>
 				<?php
 				}
@@ -961,15 +979,13 @@ if($responsive_ui)
 				{
 				if($display == 'list')
 					{
-					?>
-					<span class="smalllisticonactive">&nbsp;</span>
-					<?php
+					?><span class="smalllisticonactive"></span><?php
 					}
 				else
 					{
 					?>
 					<a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"list")); ?>" title='<?php echo $lang["listtitle"] ?>' onClick="return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this);">
-						<span class="smalllisticon">&nbsp;</span>
+						<span class="smalllisticon"></span>
 					</a>
 					<?php
 					}
@@ -981,7 +997,6 @@ if($responsive_ui)
 			{
 			if ($xlthumbs==true) { ?> <?php if ($display=="xlthumbs") { ?><span class="Selected"><?php echo $lang["xlthumbs"]?></span><?php } else { ?><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"xlthumbs")) ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["xlthumbs"]?></a><?php } ?>&nbsp; |&nbsp;<?php } ?>
 			<?php if ($display=="thumbs") { ?> <span class="Selected"><?php echo $lang["largethumbs"]?></span><?php } else { ?><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"thumbs")) ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["largethumbs"]?></a><?php } ?>&nbsp; |&nbsp; 
-			<?php if ($smallthumbs==true) { ?> <?php if ($display=="smallthumbs") { ?><span class="Selected"><?php echo $lang["smallthumbs"]?></span><?php } else { ?><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"smallthumbs")) ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["smallthumbs"]?></a><?php } ?>&nbsp; |&nbsp;<?php } ?>
 			<?php if ($display=="strip") { ?><span class="Selected"><?php echo $lang["striptitle"]?></span><?php } else { ?><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"strip")) ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["striptitle"]?></a><?php } ?>&nbsp; |&nbsp;
 			<?php if ($display=="list") { ?> <span class="Selected"><?php echo $lang["list"]?></span><?php } else { ?><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("display"=>"list")) ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["list"]?></a><?php } ?> <?php hook("adddisplaymode"); ?> 
 			<?php
@@ -991,8 +1006,8 @@ if($responsive_ui)
 		<?php
 		}
 	if ($display_selector_dropdowns && $recent_search_period_select && strpos($search,"!")===false && getvalescaped('recentdaylimit', '', true)==""){?>
-	<div class="InpageNavLeftBlock"><?php echo $lang["period"]?>:<br />
-		<select class="medcomplementwidth ListDropdown" style="width:auto" id="resultsdisplay" name="resultsdisplay" onchange="CentralSpaceLoad(this.value,true);">
+	<div class="InpageNavLeftBlock">
+		<select style="width:auto" id="resultsdisplay" name="resultsdisplay" onchange="CentralSpaceLoad(this.value,true);">
 		<?php for($n=0;$n<count($recent_search_period_array);$n++){
 			if ($display_selector_dropdowns){?>
 				<option <?php if ($daylimit==$recent_search_period_array[$n]){?>selected="selected"<?php } ?> value="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("daylimit"=>$recent_search_period_array[$n])); ?>"><?php echo str_replace("?",$recent_search_period_array[$n],$lang["lastndays"]); ?></option>
@@ -1005,7 +1020,7 @@ if($responsive_ui)
 	
 	# order by
 	#if (strpos($search,"!")===false)
-	if ($search!="!duplicates" && $search!="!unused" && !hook("replacesearchsortorder")) # Ordering enabled for collections/themes too now at the request of N Ward / Oxfam
+	if ($search!="!duplicates" && $search!="!unused" && !hook("replacesearchsortorder")) 
 		{
 		$rel=$lang["relevance"];
 		if(!hook("replaceasadded"))
@@ -1046,7 +1061,6 @@ if($responsive_ui)
 		?>
 		<div id="searchSortOrderContainer" class="InpageNavLeftBlock ">
 		<?php
-		echo $lang["sortorder"] . ':<br />';
 
 		if(!hook('render_sort_order_differently', '', array($orderFields)))
 			{
@@ -1062,16 +1076,15 @@ if($responsive_ui)
 		if($display_selector_dropdowns || $perpage_dropdown)
 			{
 			?>
-			<div class="InpageNavLeftBlock"><?php echo ucfirst($lang['perpage']); ?>:
-				<br />
-				<select id="resultsdisplay" class="medcomplementwidth ListDropdown" style="width:auto" name="resultsdisplay" onchange="<?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this.value,true);">
+			<div class="InpageNavLeftBlock">
+				<select id="resultsdisplay" style="width:auto" name="resultsdisplay" onchange="<?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this.value,true);">
 			<?php
 			for($n = 0; $n < count($results_display_array); $n++)
 				{
 				if($display_selector_dropdowns || $perpage_dropdown)
 					{
 					?>
-					<option <?php if($per_page == $results_display_array[$n]) { ?>selected="selected"<?php } ?> value="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("per_page"=>$results_display_array[$n])); ?>"><?php echo urlencode($results_display_array[$n]); ?></option>
+					<option <?php if($per_page == $results_display_array[$n]) { ?>selected="selected"<?php } ?> value="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("per_page"=>$results_display_array[$n])); ?>"><?php echo str_replace("?",$results_display_array[$n],$lang["perpage_option"]); ?></option>
 					<?php
 					}
 				}
@@ -1087,12 +1100,12 @@ if($responsive_ui)
 			}
 		
 		$url=generateURL($baseurl . "/pages/search.php",$searchparams); // Moved above render_actions as $url is used to render search actions
-		render_actions($collectiondata,true);
+		render_actions($collectiondata,true,false);
 
 		hook("search_header_after_actions");
 		
 		if (!$display_selector_dropdowns && !$perpage_dropdown){?>
-		<div class="InpageNavLeftBlock"><?php echo ucfirst($lang["perpage"]);?>:<br />
+		<div class="InpageNavLeftBlock">
 		<?php 
 		for($n=0;$n<count($results_display_array);$n++){?>
 		<?php if ($per_page==$results_display_array[$n]){?><span class="Selected"><?php echo urlencode($results_display_array[$n])?></span><?php } else { ?><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("per_page"=>$results_display_array[$n])); ?>" onClick="return CentralSpaceLoad(this);"><?php echo urlencode($results_display_array[$n])?></a><?php } ?><?php if ($n>-1&&$n<count($results_display_array)-1){?>&nbsp;|<?php } ?>
@@ -1101,7 +1114,7 @@ if($responsive_ui)
 		<?php } 
 	
 		if (!$display_selector_dropdowns && $recent_search_period_select && strpos($search,"!")===false && getvalescaped('recentdaylimit', '', true)==""){?>
-		<div class="InpageNavLeftBlock"><?php echo $lang["period"]?>:<br />
+		<div class="InpageNavLeftBlock">
 		<?php 
 		for($n=0;$n<count($recent_search_period_array);$n++){
 			if ($daylimit==$recent_search_period_array[$n]){?><span class="Selected"><?php echo htmlspecialchars(str_replace("?",$recent_search_period_array[$n],$lang["lastndays"]))?> </span>&nbsp;|&nbsp;<?php } else { ?><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("daylimit"=>$recent_search_period_array[$n])); ?>" onClick="return CentralSpaceLoad(this);"><?php echo htmlspecialchars(str_replace("?",$recent_search_period_array[$n],$lang["lastndays"]))?></a>&nbsp;|&nbsp;<?php } 
@@ -1124,11 +1137,12 @@ if($responsive_ui)
 	<?php hook("stickysearchresults"); ?> <!--the div TopInpageNavRight was added in after this hook so it may need to be adjusted -->
 	<div class="TopInpageNavRight">
 	<?php
-		pager();
+		pager(false);
 		$draw_pager=true;
 	?>
 	</div>
 	<div class="clearerleft"></div>
+	</div>
 	</div>
 	<?php
 } 
@@ -1218,7 +1232,7 @@ if($responsive_ui)
         {
         $list_displayed = true;
 		?>
-		<div class="Listview">
+		<div class="BasicsBox"><div class="Listview">
 		<table border="0" cellspacing="0" cellpadding="0" class="ListviewStyle">
 
 		<?php if(!hook("replacelistviewtitlerow")){?>	
@@ -1232,7 +1246,7 @@ if($responsive_ui)
 			<?php if ($order_by=="field".$df[$x]['ref']) {?><td class="Selected"><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("order_by"=>"field" . $df[$x]['ref'],"sort"=>$revsort)); ?>" onClick="return CentralSpaceLoad(this);"><?php echo htmlspecialchars($df[$x]['title'])?></a><div class="<?php echo urlencode($sort)?>">&nbsp;</div></td><?php } else { ?><td><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("order_by"=>"field" . $df[$x]['ref'])); ?>" onClick="return CentralSpaceLoad(this);"><?php echo htmlspecialchars($df[$x]['title'])?></a></td><?php } ?>
 			<?php }
 		
-		if ($display_user_rating_stars && ($k=="" || $internal_share_access) || hook("forceratingstarheading")){?><td><?php if ($order_by=="popularity") {?><span class="Selected"><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("order_by"=>"popularity","sort"=>$revsort)); ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["popularity"]?></a><div class="<?php echo urlencode($sort)?>">&nbsp;</div></span><?php } else { ?><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("order_by"=>"popularity")); ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["popularity"]?></a><?php } ?></td><?php } 
+		hook("searchbeforeratingfieldtitlecolumn");
 		if (isset($rating_field)){?><td>&nbsp;</td><!-- contains admin ratings --><?php }
 		if ($id_column){?><?php if ($order_by=="resourceid"){?><td class="Selected"><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("order_by"=>"resourceid","sort"=>$revsort)); ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["id"]?></a><div class="<?php echo urlencode($sort)?>">&nbsp;</div></td><?php } else { ?><td><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("order_by"=>"resourceid")); ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["id"]?></a></td><?php } ?><?php } ?>
 		<?php if ($resource_type_column){?><?php if ($order_by=="resourcetype"){?><td class="Selected"><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("order_by"=>"resourcetype","sort"=>$revsort)); ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["type"]?></a><div class="<?php echo urlencode($sort)?>">&nbsp;</div></td><?php } else { ?><td><a href="<?php echo generateURL($baseurl_short."pages/search.php",$searchparams,array("order_by"=>"resourcetype")); ?>" onClick="return CentralSpaceLoad(this);"><?php echo $lang["type"]?></a></td><?php } ?><?php } ?>
@@ -1310,9 +1324,9 @@ if($responsive_ui)
 				}			
 				
 			// Check if user or group has been granted specific access level as set in array returned from do_search function. 
-			if($result[$n]["user_access"]!="")
+			if(isset($result[$n]["user_access"]) && $result[$n]["user_access"]!="")
 				{$result[$n]["access"]=$result[$n]["user_access"];}
-			elseif ($result[$n]["group_access"]!="")
+			elseif (isset($result[$n]["group_access"]) && $result[$n]["group_access"]!="")
 				{$result[$n]["access"]=$result[$n]["group_access"];}
 			// Global $access needs to be set to check watermarks in search views (and may be used in hooks)		
 			$access=$result[$n]["access"];
@@ -1346,12 +1360,6 @@ if($responsive_ui)
                 include "search_views/xlthumbs.php";
                 }
 
-            if ($display=="smallthumbs")
-                {
-                # ---------------- Small Thumbs view ---------------------
-                include "search_views/smallthumbs.php";
-                }
-
             if ($display=="list")
                 {
                 # ----------------  List view -------------------
@@ -1373,16 +1381,16 @@ if($responsive_ui)
         {
         ?>
         </table>
-        </div>
+        </div></div>
         <?php
         }
-
-if ($display=="strip")
-	{
-        #  ---------------------------- Extra footer for strip view ----------------------------
-        include 'search_views/strip_footer.php';
-        }
     
+if ($display=="strip")
+    {
+    #  ---------------------------- Extra footer for strip view ----------------------------
+    include 'search_views/' . $display . '_footer.php';
+    }
+
 $url=generateURL($baseurl . "/pages/search.php",$searchparams); 
 
 ?>

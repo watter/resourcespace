@@ -20,6 +20,8 @@
 h1,h2,h3,h4,h5,h6,.Title {font-family:WorkSansMedium, Tahoma, Arial, Helvetica, sans-serif;}
 .ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button,.ui-widget, body, input, textarea, select {font-family:WorkSans, Tahoma, Arial, Helvetica, sans-serif;}
 
+select {font-size:1em;}
+.TopInpageNav select {padding:3px;}
 
 /*Create Base font for relative sizing*/
 html {height:100%;}
@@ -56,7 +58,7 @@ input[readonly] {border: none; background: none;}
 input,textarea {box-sizing: border-box;-moz-box-sizing: border-box;-webkit-box-sizing: border-box;}
 option {font-size:1em;}
 input.defaultbutton {position: absolute; left: -100%; width: 0; height: 0;}
-button[type="submit"] { font-size: 1em; }
+input[type=submit], input[type=button] {border-radius: 5px; font-size: 1em;}
 #clearbutton {margin: 10px 5px 0 0;width: 122px;}
 #searchbutton{ width: 122px;margin: 10px 0 0 0;}
 /*General tags*/
@@ -68,6 +70,7 @@ button[type="submit"] { font-size: 1em; }
 .breakall {word-break:break-all;}
 .underline{text-decoration: underline;}
 .pageline{border-bottom: 1px solid #d7d7d7;  margin-right:10px;margin-left:5px;}
+.DisplayNone { display: none; }
 
 /* General Form tags */
 .checkoption {vertical-align: top;display: inline-block;width: 195px;margin: 2px; *display:inline;*zoom: 1;}
@@ -107,7 +110,7 @@ button[type="submit"] { font-size: 1em; }
 #HeaderNav2 {float:left; padding-left: 30px;}
 #HeaderNav1 ul, #Headernav2 ul {padding: 0.2em 0.5em;}
 .HeaderImgLink{float:left;height:100%;}
-#HeaderImg{margin:0;}
+#HeaderImg{margin:0;max-height: 40px; }
 .HorizontalNav li,  .HorizontalNav li {display: inline-block;zoom: 1;*display: inline;}
 .HorizontalNav li a, .HorizontalNav li a{display: inline-block;zoom: 1;*display: inline;}
 #SearchBarContainer {margin-top: 20px;}
@@ -119,7 +122,7 @@ h2#CollectionsPanelHeader {display:none;}
 .HeaderSmall #HeaderImg{max-height:40px;}
 .HeaderSmall #HeaderNav1 {height:30px;}
 
-.HeaderMid #HeaderNav1, .HeaderMid #HeaderNav2 {margin:5px 0 0 0;line-height: 35px;}
+.HeaderMid #HeaderNav1, .HeaderMid #HeaderNav2 {margin:9px 0 0 0;line-height: 35px;}
 .HeaderMid #HeaderImg{max-height:50px;}
 .HeaderMid #HeaderNav1 {height:50px;}
 
@@ -128,18 +131,32 @@ h2#CollectionsPanelHeader {display:none;}
 .HeaderLarge #HeaderNav1 {height:70px;}
 .HeaderLarge #HeaderNav2 {float:right; clear:both; padding-left: 20px;margin-top:0;}
 
-/* Fix for IE not scaling svg files correctly */
-@media all and (-ms-high-contrast: active), (-ms-high-contrast: none)
+.HeaderImgLink
     {
-    img[src$=".svg"]
-        {
-        height: 100% !important; 
-        width: 100% !important;
-        }
+    width: auto;
+    }
+    
+/* Parent height set so that svg files scale correctly */
+.HeaderSmall .HeaderImgLink
+    {
+    height: 40px;
+    }
+.HeaderMid .HeaderImgLink
+    {
+    height: 50px;
+    }		
+.HeaderLarge .HeaderImgLink
+    {
+    height: 70px;
+    }
+
+img[src$=".svg"]
+    {
+    height: 100% !important; 
     }
 
 /* Slim header with fixed top bar */
-div#Header.SlimHeaderFixedPosition { width: 100%; position:fixed; top: 0px; z-index: 100; }
+div#Header.SlimHeaderFixedPosition { width: 100%; position:fixed; top: 0px; z-index: 1100; }
 div#Header.SlimHeaderFixedPosition #HeaderNav1 { margin-right: 25px; }
 div#Header.SlimHeaderFixedPosition #HeaderNav2 li:last-child { margin-right: 40px; }
 div#CentralSpaceContainer.SlimHeaderFixedPosition { margin-top: 100px; }
@@ -156,10 +173,10 @@ div#SearchBox.SlimHeaderFixedPosition { margin-top: 80px; }
 #CentralSpaceLogin {margin: 2em auto 4em;padding:0;width: 760px;text-align:left;}
 #CentralSpace {text-align:left;position:relative;}
 
-.TopInpageNav {clear: left;padding-bottom: 5px;margin-bottom:10px;margin-right: 15px;position:relative;}
+.TopInpageNav {clear: left;margin-bottom:20px;margin-right: 0;position:relative;}
 .BottomInpageNav {clear: left;padding-top: 5px;margin: 20px 15px 20px 0px; position:relative;}
 .BottomInpageKey {margin-right: 15px; clear: left; text-align: left;}
-.TopInpageNavLeft{float:left;padding-right:240px;}
+.TopInpageNavLeft{float:left;padding-right:120px;}
 .TopInpageNavRight{position:absolute;right:0;top:0;width:280px;text-align:right;}
 .InpageNavLeftBlock {display:inline-block; *display: inline; *zoom: 1;text-align:left;margin: 0 20px 0 0;}
 .InpageNavRightBlock {display:inline-block; *display: inline; *zoom: 1;text-align:left;margin: 0 15px 0 0;}
@@ -204,9 +221,9 @@ div#SearchBox.SlimHeaderFixedPosition { margin-top: 80px; }
 #CentralSpace .SplitSearch {float: left; margin-left: 5px;margin-right: 5px;}
 .NumberSearchWidth {font-size: 0.9em;width:80px;font-size: 0.9em;margin: 0px 0px;padding: 0px;margin-bottom:3px;}
 
-.CollectionPanelShell {padding:0;float: left;margin: 0px 15px 5px 0px;width: 97px;height: 120px; text-align: left;}
+.CollectionPanelShell {padding:5px;float: left;margin: 0px 10px 10px 0px;width: 110px;height: 120px;text-align: left;border-radius: 5px;}
 .CollectionPanelInfo{padding-bottom:3px;}
-.CollectionResourceAlign {width:97px;height:85px;text-align: center;vertical-align: middle;}
+.CollectionResourceAlign {width:110px;height:85px;text-align: center;vertical-align: middle;}
 
 #CollectionMinTitle{float: left;margin: 4px 10px 0px 25px;}
 #CollectionMinDropTitle{float: left;padding:0.2em 0em;margin-top: 6px;}
@@ -246,13 +263,16 @@ div#SearchBox.SlimHeaderFixedPosition { margin-top: 80px; }
 #SearchBox .PopupCategoryTree { display: none; position: fixed; text-align: left; z-index: 999; }
 
 /*Resource Panel layout*/
-.ResourcePanelShell {padding:0;float: left;margin: 0px 15px 10px 0px;width: 174px;}
-.ResourcePanel {padding:0;margin:0;width: 172px;padding-bottom:5px;}
+.ResourcePanel {padding:0;margin:0 14px 14px 0;width: 174px;float:left;height:230px;position:relative;}
 .ResourcePanelPreview {height: 156px;width: 156px;margin: 3px;}
-.ResourcePanelInfo {margin-right: 5px;margin-left: 5px;margin-bottom: 4px;overflow:hidden;white-space:nowrap;padding:0;margin-top:0;}	
+.ResourcePanelInfo {margin: 5px;overflow:hidden;white-space:nowrap;padding:0;text-align:justify;text-overflow: ellipsis;}	
 .ResourcePanelCountry {margin-right: 5px;margin-left: 5px;margin-bottom: 0px;float: left;clear: left;display:inline;}	
-.ResourcePanelIcons {padding: 5px;}	
+.ResourcePanelIcons {padding: 5px;text-align:right;position:absolute;bottom:0;right:0;width:166px;}	
 .ResourcePanelSmallIcons {padding-left: 5px;}	
+.ImageWrapper {height:150px;display:block;padding:0;;vertical-align: middle;text-align: center;clear: right;}
+.ImageWrapperSmall {height:75px;display:block;padding:0;;vertical-align: middle;text-align: center;clear: right;}
+.ImageWrapperLarge {height:320px; display:block; padding:0; vertical-align: middle; text-align:center; clear:right;}
+.ResourcePanel .ImageWrapper {margin-top: 12px;}
 
 .ResourceAlign {width:172px;height:177px;text-align: center;vertical-align: middle;}
 .ResourceTypeIcon { height: 16px;width:16px;float:right;margin-right:5px;margin-top:6px; }
@@ -271,12 +291,12 @@ div#SearchBox.SlimHeaderFixedPosition { margin-top: 80px; }
 
 .ResourcePanelShellLarge {padding:0 0 10px; float: left;margin: 0px 15px 0px 0px;width: 365px;}
 .ResourcePanelShellLarge.ui-draggable {text-align: left;}
-.ResourcePanelLarge {padding:0;margin:0;width: 365px;padding-bottom:5px;}
-.ResourcePanelLarge .ResourcePanelIcons {font-size:1.5em;}
+.ResourcePanelLarge {width: 320px;}
+.ResourcePanelLarge .ResourcePanelIcons {font-size:1.25em; width: 310px;}
 .ResourcePanelSmall .ResourcePanelIcons {font-size:0.8em;}
 .ResourceAlignLarge {width:365px;height:365px;text-align: center;vertical-align: middle;}
 
-.ResourcePanelIcons a, .CollectionPanelTools a	{;margin-right: 0.5em;text-decoration:none;}
+.ResourcePanelIcons a, .CollectionPanelTools a	{;margin-left: 3px;margin-right:2px; text-decoration:none;}
 .ListTools a	{float: right;margin-left: 5px;text-decoration:none;}
 .ResourcePanelIcons a:hover	{text-decoration:none;}
 .ListTools a:hover	{text-decoration:none;}
@@ -289,10 +309,10 @@ a:hover .fa,.fa:hover {text-decoration:none !important;} /* Never underline a Fo
 .DESC {display: inline;padding-right: 10px;}
 
 /*Resource Panel layout*/
-.Listview {overflow-x:auto;	margin: 0 10px 25px 0;}
+.Listview {overflow-x:auto;	margin: 0 0 25px 0;}
 .ListviewTight {margin: 5px 10px 5px 0;}
 .Listview table{ width:100%;}
-.Listview td {padding: 5px 5px 5px 5px;vertical-align: top;}
+.Listview td {padding:7px;vertical-align: top;}
 .ListTools {text-align: right;}
 .ListTitle {font-weight: bold;}
 .Listview .IconStar	{width:11px;height:12px;padding: 0;display: block;float:left;}
@@ -311,13 +331,13 @@ a:hover .fa,.fa:hover {text-decoration:none !important;} /* Never underline a Fo
 .SearchSpace a:link, .SearchSpace a:visited {text-decoration:none;}
 .SearchSpace a:hover, .SearchSpace a:active {text-decoration:underline;}
 
-.ListDropdown {width: 115px;font-size: 0.7em;margin:0px;padding: 0px;height:18px;}
+.ListDropdown {width: 115px;margin:0px;padding: 0px;height:18px;}
 
 /*Forms*/
 #CentralSpaceLogin form {margin:0;padding:0;}
-.Question{padding: 0.5em 0em 1em;}
-.QuestionSubmit{	padding: 0.75em 0em 1em;margin-top: 1em;}
-.Question label, .QuestionSubmit label{	width: 300px;float: left;margin-top: 0.4em;}
+.Question{padding: 0.7em 0em 0.7em 0.5em;}
+.QuestionSubmit{ padding: 1em 0em 1em 0.5em;}
+.Question label, .QuestionSubmit label{	width: 300px;float: left;margin-top: 0.3em;padding-right:10px;}
 .Question .customFieldLabel { width: auto; margin: 0;}
 .Question .customFieldset { padding: 0; border: 0;}
 .Question #capswarning { margin-left: 190px; display: none; color: red;font-weight: bold;}
@@ -343,12 +363,11 @@ a:hover .fa,.fa:hover {text-decoration:none !important;} /* Never underline a Fo
 
 .FormWide .Question label{width: 20%}
 .FormWide .Question .Inline label { width: auto; }
-.FormWide .Question .stdwidth, .FormWide .Question .tickset{width: 80%}
+.FormWide .Question .stdwidth, .FormWide .Question .tickset{width: 70%}
 .FormWide .Question .tickset .stdwidth{width: 99%}
 .FormWide .Question .FormHelp {margin: 0px 10px 10px 20%;}
 .FormWide .Question .FormHelp .FormHelpInner {width: 99%}
 
-.NoPaddingSaveClear {padding: 0;margin: 0;margin-bottom: 10px;}
 .Question .Fixed {    width: 300px;float: left;margin-top: 0.4em;font-weight: bold;} 
 .FormError{font-weight: bold;font-size: 1.1em;margin: 0px 0px 10px 190px;padding: 10px 0px 0px;}
 .FormIncorrect {font-weight: bold;font-size: 1.1em;margin: 0px 0px 25px;text-align: center;padding: 3px 3px 6px;}
@@ -403,7 +422,7 @@ a:hover .fa,.fa:hover {text-decoration:none !important;} /* Never underline a Fo
 .RecordPanel .RecordDownloadSpace .DownloadDBlend .DownloadButton {text-align: center;font-weight: bold;}
 .RecordPanel .RecordDownloadSpace .DownloadDBlend h2 {margin:0;padding:0;font-size: 1em;	text-align: left;}
 .RecordPanel .RecordDownloadSpace .DownloadDBlend p {margin:0;padding:0;	text-align: left;}
-.RecordStory{padding: 6px;}
+.RecordStory {padding: 6px;}
 .RecordStory h1{font-size:1.25em; padding:0.5em 0 0.5em 0; margin:0;font-weight:bold;}
 
 .RecordPanel h2{font-size:1.25em; padding:0; margin:0.5em 0 0.5em 0;font-weight:bold;}
@@ -411,7 +430,7 @@ a:hover .fa,.fa:hover {text-decoration:none !important;} /* Never underline a Fo
 
 
 /* Basic page */
-.BasicsBox {margin:20px 15px 15px 0px;}
+.BasicsBox {margin:20px 15px 10px 0px;}
 .BasicsBox h1 {padding: 0px 0px 0.5em;}
 .BasicsBox h2 {font-size: 1.2em;margin-bottom: 4px;}
 .BasicsBox .HorizontalNav ul {padding:0.2em 0;margin:0 0 1.5em;list-style:none;}
@@ -440,7 +459,7 @@ a.HomePanel {text-decoration:none;}
 a.HomePanel {cursor:pointer;}
 
 
-.TabBar {padding:10px 0 0 0;}
+.TabBar {padding:10px 0 0 0;margin-bottom: -1px;}
 .Tab a {margin:0 5px 0 0;padding:5px;display:inline-block; border-top-right-radius:5px;border-top-left-radius:5px; }
 .Tab a:hover {text-decoration: none;}
 .Tab {display:inline;}
@@ -579,21 +598,11 @@ div.autocomplete ul li {
 	top:300px;
 	left: 40%;
 	font-size:150%;
-	width:200px;padding:15px;
-	border: 1px solid;
-	background-color:white;
-	border-radius:5px;
-    box-shadow: 4px 5px 5px rgba(0, 0, 0, .2);
+	width:200px;padding:30px;
     z-index:99999;
-    line-height:200%;
-    color:black;
     display:none;
 	}
-#LoadingBox img
-	{
-	float:right;
-	vertical-align: middle;
-	}
+
 
 li.plupload_droptext {font-size: 1.1em;}
 
@@ -631,7 +640,7 @@ li.plupload_droptext {font-size: 1.1em;}
     cursor: pointer;
     }
 
-h2.CollapsibleSectionHead {
+h2.CollapsibleSectionHead, h1.CollapsibleSectionHead {
 	padding: 0.1em 0 0.5em 0;
 }
 
@@ -699,33 +708,42 @@ margin-bottom:10px;
 }
 
 .smalllisticon, .smalllisticonactive, .xlthumbsicon, .xlthumbsiconactive, .smallthumbsicon, .smallthumbsiconactive, .largethumbsicon, .largethumbsiconactive, .stripicon, .stripiconactive {
-width: 20px;
+width: 24px;
 display: block;
-height: 20px;
+height: 24px;
 float:left;
+padding-left: 3px;
 }
 
 /* astec migrated 072515 - not sure who's edit this is*/
 .InpageNavLeftBlock {
 text-align:left;
-margin-right: 20px;
-margin-bottom: 10px;
+margin-right: 15px;
 }
 
 .icondisplay {
-width: 110px;
+    width:110px;
+    margin-right: 10px;
 }
 
-.smalllisticon{background: url(../gfx/interface/listicon.png) no-repeat 0px;}
-.smalllisticonactive {background: url(../gfx/interface/listiconactive.png) no-repeat 0px;}
-.xlthumbsicon{background: url(../gfx/interface/xlicon.png) no-repeat 0px;}
-.xlthumbsiconactive {background: url(../gfx/interface/xliconactive.png) no-repeat 0px;}
-.smallthumbsiconactive{background: url(../gfx/interface/smalliconactive.png) no-repeat 0px;}
-.smallthumbsicon{background: url(../gfx/interface/smallicon.png) no-repeat 0px;}
-.largethumbsicon{background: url(../gfx/interface/largeicon.png) no-repeat 0px;}
-.largethumbsiconactive{background: url(../gfx/interface/largeiconactive.png) no-repeat 0px;}
-.stripiconactive{background: url(../gfx/interface/stripiconactive.png) no-repeat 0px;}
-.stripicon{background: url(../gfx/interface/stripicon.png) no-repeat 0px;}
+.smalllisticon{background: url(../gfx/interface/listicon.svg) no-repeat 0px;}
+.smalllisticonactive {background: url(../gfx/interface/listiconactive.svg) no-repeat 0px;}
+.xlthumbsicon{background: url(../gfx/interface/xlicon.svg) no-repeat 0px;}
+.xlthumbsiconactive {background: url(../gfx/interface/xliconactive.svg) no-repeat 0px;}
+.smallthumbsicon{background: url(../gfx/interface/smallicon.svg) no-repeat 0px;}
+.smallthumbsiconactive{background: url(../gfx/interface/smalliconactive.svg) no-repeat 0px;}
+.largethumbsicon{background: url(../gfx/interface/largeicon.svg) no-repeat 0px;}
+.largethumbsiconactive{background: url(../gfx/interface/largeiconactive.svg) no-repeat 0px;}
+.stripicon{background: url(../gfx/interface/stripicon.svg) no-repeat 0px;}
+.stripiconactive{background: url(../gfx/interface/stripiconactive.svg) no-repeat 0px;}
+
+#searchSortOrderContainer, #resultsdisplay, .InpageNavLeftBlock {
+    vertical-align: top;
+}
+
+#SearchResultFound {
+    padding-top: 3px;
+}
 
 #contactadminbox  textarea{
 	width:100%;
@@ -858,21 +876,19 @@ a.HomePanel:hover {
 	padding: 0;
 	overflow: hidden;
 	position: relative;
-	height: 100%;
+	height: 180px;
 	width: 100%;
-	min-height: 180px;
 }
-.HomePanelDynamicDash h2, .HomePanelThemes h2 {
+.HomePanelDynamicDash h2, .HomePanelThemes h2, .FeaturedSimpleTileContents h2 {
 	float: none;
 	position: relative;
 	padding: 12px 15px 0 15px;
 	margin-bottom: 0;
 	font-size: 1.2em;
-	
 }
-.HomePanelDynamicDash h2 span, .HomePanelThemes h2 span {
-	padding-right:8px;font-size:1.2em;
-	
+.HomePanelDynamicDash h2 span, .HomePanelThemes h2 span, .FeaturedSimpleTileContents h2 span {
+    padding-right: 8px;
+    font-size: 1.2em;
 }
 .HomePanelDynamicDash p, .HomePanelThemes p {
 	float: none;
@@ -883,7 +899,10 @@ a.HomePanel:hover {
 	clear: left;
 	font-size:1em;
 }
-
+.DoubleWidthDashTile {
+    /*Note: check .HomePanel width to be sure it is ok*/
+    width: 515px;
+}
 
 .tools a{white-space: nowrap;}
 #delete_dialog {display:none !important;}
@@ -1023,6 +1042,10 @@ div.video-js {margin:auto;}
 #modal .BasicsBox .HelpHeader a { color: #e0e0e0; }
 #modal .BasicsBox .HelpHeader .backtoresults { margin-top: 15px; }
 
+.modalform {
+    min-width: 600px;
+    margin-bottom: 20px;
+    }
 /* Dropdown Actions */
 #CollectionMenu .ActionsContainer {
 	margin: 10px 0px;
@@ -1081,9 +1104,7 @@ div.MessageBox a {
 
 .FeaturedSimpleTile {
 	position: relative;
-	margin-left: 100px;
-	margin-right: 100px;
-	margin-top: 25px;
+	margin-top: 10px;
 	height: 150px;
 	border-radius:5px;
 	overflow: hidden;
@@ -1118,10 +1139,15 @@ a.FeaturedSimpleLink:hover, a.FeaturedSimpleLink:active  {
 	text-decoration:none;
 }
 
+.FeaturedCallToActionTile .FeaturedSimpleTileContents h2 {
+    text-align: center;
+}
+.FeaturedCallToActionTile .FeaturedSimpleTileContents h2 span{
+    font-size: 2em;
+}
 
 .FeaturedSimpleTile .FeaturedSimpleTileContents h2{
 	background: transparent;
-	text-align: center;
 	margin: auto;  
 	max-width: 215px;    
 	white-space: normal;
@@ -1272,7 +1298,7 @@ UL.jqueryFileTree A:hover {font-weight:bold;}
     visibility:visible;
     }
     
-.CollectionPanelTools {visibility:hidden;}
+.CollectionPanelTools {visibility:hidden;text-align:right;}
 .CollectionPanelShell:hover .CollectionPanelTools {visibility:visible;}
 #FilterNodeOptions .FilterItemContainer > label { width: 150px; }.tag-editor li { padding: initial; }
 
@@ -1324,4 +1350,47 @@ UL.jqueryFileTree A:hover {font-weight:bold;}
 a.Enabled, a:visited.Enabled {
     color: #79BC41;
     text-decoration: underline;
+}
+
+.checkselect {float:left;padding-left:5px;}
+
+.ResourcePanelResourceID {float:left;}
+
+
+.ReportSheet {padding:10px;}
+.ReportSummary td {padding:10px;}
+.ReportMetric {font-size:200%;padding-left:5px;}
+.ReportAddToDash {font-size:65%;}
+
+#modal #CentralSpaceResources {padding:20px;} /* extra spacing needed when results displayed in a modal - e.g. geographical search */
+
+
+
+
+/* Breadcrumbs */
+.BreadcrumbsBox {
+    display: inline-block;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    margin: 0em 1em 1em 0em;
+    padding: 0.66em;
+    background: rgba(0, 0, 0, 0.65);
+}
+.BreadcrumbsBox > .SearchBreadcrumbs {
+    margin: 0;
+}
+
+/* Colour picker */
+#tile_style_colour {
+    display: none;
+}
+
+.lockedQuestion .fieldset, .lockedQuestion table, .lockedQuestion input, .lockedQuestion select, .lockedQuestion textarea, .lockedQuestion .keywordselected, .lockedQuestion .CategoryBox{
+   font-weight: bold;
+}
+
+.lock_icon {
+    float: right;
+    height: 30px;
 }

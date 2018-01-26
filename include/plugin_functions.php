@@ -4,7 +4,6 @@
  *
  * @package ResourceSpace
  * @subpackage Includes
- * @author Brian Adams <wreality@gmail.com>
  */
 /**
  * Activate a named plugin.
@@ -432,8 +431,8 @@ function display_rsc_upload($upload_status)
       <label for="rsc_file"><?php echo $lang['plugins-getrsc'] ?></label>
       <input type="file" name="rsc_file" id="rsc_file" size=80 />
       <input type="submit" name="upload" value="<?php echo $lang['plugins-upload'] ?>" />
+      <div class="clearerleft"></div>
     </div>
-    <div class="clearerleft"></div>
   </form>
 <?php
     }
@@ -504,7 +503,8 @@ function config_gen_setup_post($page_def,$plugin_name)
                         $omit = true;
                         break;
                     case 'text_list':
-                        $GLOBALS[$def[1]] = explode(',', getval($def[1], ''));
+                        $pval = getval($def[1],'');
+                        $GLOBALS[$def[1]] = (trim($pval) != '') ? explode(',',$pval) : array();
                         break;
                     case 'hidden_param':
                         break;
@@ -609,7 +609,7 @@ function config_gen_setup_html($page_def,$plugin_name,$upload_status,$plugin_pag
                 config_multi_user_select($def[1], $def[2], $GLOBALS[$def[1]], $def[3]);
                 break;			
             case 'single_ftype_select':
-                config_single_ftype_select($def[1], $def[2], $GLOBALS[$def[1]], $def[3], $def[4], $def[5]);
+                config_single_ftype_select($def[1], $def[2], $GLOBALS[$def[1]], $def[3], $def[4], $def[5],$def[6]);
                 break;
             case 'multi_ftype_select':
                 config_multi_ftype_select($def[1], $def[2], $GLOBALS[$def[1]], $def[3],$def[4], $def[5]); 
@@ -639,8 +639,8 @@ function config_gen_setup_html($page_def,$plugin_name,$upload_status,$plugin_pag
           <label for="submit">&nbsp;</label>
           <input type="submit" name="save" id="save" value="<?php echo $lang['plugins-saveconfig']?>">
           <input type="submit" name="submit" id="submit" value="<?php echo $lang['plugins-saveandexit']?>">
+          <div class="clearerleft"></div>
         </div>
-        <div class="clearerleft"></div>
       </form>
 <?php
     display_rsc_upload($upload_status);
@@ -663,8 +663,8 @@ function config_section_header($title, $description)
 	<?php if ($description!=""){?>
 		<p><?php echo $description?></p>
     <?php } ?>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
 <?php
     }
 
@@ -725,8 +725,8 @@ function config_multi_select($name, $label, $current, $choices, $usekeys=true, $
         }
 ?>
     </select>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
 <?php
     }
 
@@ -775,8 +775,9 @@ function config_single_user_select($name, $label, $current=array(), $width=300)
         }
 ?>
     </select>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
+  
 <?php
     }
 
@@ -819,8 +820,9 @@ function config_multi_user_select($name, $label, $current=array(), $width=300)
         }
 ?>
     </select>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
+  
 <?php
     }
 	
@@ -862,8 +864,9 @@ function config_single_group_select($name, $label, $current=array(), $width=300)
 		}
 ?>
     </select>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
+  
 <?php
     }
 	
@@ -906,8 +909,9 @@ function config_multi_group_select($name, $label, $current=array(), $width=300)
         }
 ?>
     </select>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
+  
 <?php
     }
 	
@@ -925,62 +929,7 @@ function config_add_multi_group_select($config_var, $label, $width=300)
     }
 
 /**
- * Generate an html single-select + options block for selecting one of the RS field types. The
- * selected field type is posted as the value of the "ref" column of the selected field type.
- *
- * @param string $name the name of the select block. Usually the name of the config variable being set.
- * @param string $label the user text displayed to label the select block. Usually a $lang string.
- * @param integer $current the current value of the config variable being set
- * @param integer $width the width of the input field in pixels. Default: 300.
- */
-function config_single_ftype_select($name, $label, $current, $width=300, $rtype=false, $ftypes=array())
-    {
-    global $lang;
-	$fieldtypefilter="";
-	if(count($ftypes)>0)
-		{
-		$fieldtypefilter = " type in ('" . implode("','", $ftypes) . "')";
-		}
-		
-    if($rtype===false){
-    	$fields=sql_query('select * from resource_type_field ' .  (($fieldtypefilter=="")?'':' where ' . $fieldtypefilter) . ' order by title, name');
-    }
-    else{
-    	$fields=sql_query("select * from resource_type_field where resource_type='$rtype' " .  (($fieldtypefilter=="")?"":" and " . $fieldtypefilter) . "order by title, name");
-    }
-?>
-  <div class="Question">
-    <label for="<?php echo $name?>" title="<?php echo str_replace('%cvn', $name, $lang['plugins-configvar'])?>"><?php echo $label?></label>
-    <select name="<?php echo $name?>" id="<?php echo $name?>" style="width:<?php echo $width ?>px">
-    <option value="" <?php echo (($current=="")?' selected':'') ?>></option>
-<?php
-    foreach($fields as $field)
-        {
-        echo '    <option value="'. $field['ref'] . '"' . (($current==$field['ref'])?' selected':'') . '>' . lang_or_i18n_get_translated($field['title'],'fieldtitle-') . '</option>';
-        }
-?>
-    </select>
-  </div>
-  <div class="clearerleft"></div>
-<?php
-    }
-
-/**
- * Return a data structure that will instruct the configuration page generator functions to
- * add a single RS field-type select configuration variable to the setup page.
- *
- * @param string $config_var the name of the configuration variable to be added.
- * @param string $label the user text displayed to label the select block. Usually a $lang string.
- * @param integer $width the width of the input field in pixels. Default: 300.
- * @param integer $rtype optional to specify a resource type to get fields for 
- * @param integer array $ftypes an array of field types e.g. (4,6,10) will return only fields of a date type
- */
-function config_add_single_ftype_select($config_var, $label, $width=300, $rtype=false, $ftypes=array())
-    {
-    return array('single_ftype_select', $config_var, $label, $width, $rtype, $ftypes);
-    }
-
-/**
+ * Generate an html multi-select + options block for selecting multiple the RS field types. The
  * Generate an html multi-select + options block for selecting multiple the RS field types. The
  * selected field type is posted as an array of the values of the "ref" column of the selected
  * field types.
@@ -1010,8 +959,8 @@ function config_multi_ftype_select($name, $label, $current, $width=300,$size=7,$
         }
 ?>
     </select>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
 <?php
     }
 
@@ -1052,8 +1001,8 @@ function config_single_rtype_select($name, $label, $current, $width=300)
         }
 ?>
     </select>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
 <?php
 }
 
@@ -1095,8 +1044,8 @@ function config_multi_rtype_select($name, $label, $current, $width=300)
         }
 ?>
     </fieldset>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
 <?php
     }
 
@@ -1157,8 +1106,8 @@ function config_db_single_select($name, $label, $current, $choices, $ixcol='ref'
         }
 ?>
     </select>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
 <?php
     }
 
@@ -1231,8 +1180,8 @@ function config_add_db_single_select($config_var, $label, $choices, $ixcol='ref'
         }
 ?>
     </select>
+    <div class="clearerleft"></div>
   </div>
-  <div class="clearerleft"></div>
 <?php
     }
 

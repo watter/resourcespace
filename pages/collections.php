@@ -184,8 +184,9 @@ if ($allow_reorder)
 			});		
 		}
 		jQuery(document).ready(function() {
-			if(jQuery(window).width()<600 && jQuery(window).height()<600 && is_touch_device()) {
-					return false;
+			if(is_touch_device())
+				{
+				return false;
 				}
 
 			jQuery('#CollectionSpace').sortable({
@@ -263,7 +264,7 @@ else { ?>
 	<script>
 		jQuery('#CentralSpace').on('prepareTrash', function() {
 			jQuery('#CollectionDiv').droppable({
-				accept: '.ResourcePanelShell, .ResourcePanelShellSmall, .ResourcePanelShellLarge',
+				accept: '.ResourcePanel',
 
 				drop: function(event, ui)
 					{
@@ -283,7 +284,7 @@ else { ?>
 			});
 
 			jQuery('#trash_bin').droppable({
-				accept: '.CollectionPanelShell, .ResourcePanelShell, .ResourcePanelShellSmall, .ResourcePanelShellLarge',
+				accept: '.CollectionPanelShell, .ResourcePanel',
 				activeClass: "ui-state-hover",
 				hoverClass: "ui-state-active",
 
@@ -643,9 +644,9 @@ if(!hook("updatemaincheckboxesfromcollectionframe")){
 	if ($use_checkboxes_for_selection){?>
 	<script><?php
 	# update checkboxes in main window
-	for ($n=0;$n<count($result);$n++)			
+	for ($n=0;$n<count($results_all);$n++)			
 		{
-		$ref=$result[$n]["ref"];
+		$ref=$results_all[$n]["ref"];
 		?>
 		if (jQuery('#check<?php echo htmlspecialchars($ref) ?>')){
 		jQuery('#check<?php echo htmlspecialchars($ref) ?>').prop('checked',true);
@@ -744,8 +745,8 @@ elseif ($k!="" && !$internal_share_access)
 <?php if (!hook("thumbsmenu")) { ?>
   <?php if (!hook("replacecollectiontitle") && !hook("replacecollectiontitlemax")) { ?><h2 id="CollectionsPanelHeader"><a onclick="return CentralSpaceLoad(this,true);" href="<?php echo $baseurl_short?>pages/collection_manage.php"><?php echo $lang["mycollections"]?></a></h2><?php } ?>
   <form method="get" id="colselect" onsubmit="newcolname=encodeURIComponent(jQuery('#entername').val());CollectionDivLoad('<?php echo $baseurl_short?>pages/collections.php?collection=new&search=<?php echo urlencode($search)?>&k=<?php echo urlencode($k) ?>&entername='+newcolname);return false;">
-		<div class="SearchItem" style="padding:0;margin:0;"><?php echo $lang["currentcollection"]?>&nbsp;(<strong><?php echo $count_result?></strong>&nbsp;<?php if ($count_result==1){echo $lang["item"];} else {echo $lang["items"];}?>): 
-		<select name="collection" id="collection" onchange="if(document.getElementById('collection').value=='new'){document.getElementById('entername').style.display='block';document.getElementById('entername').focus();return false;} <?php if (!checkperm("b")){ ?>ChangeCollection(jQuery(this).val(),'<?php echo urlencode($k)  ?>','<?php echo urlencode($usercollection) ?>','<?php echo $change_col_url?>');<?php } else { ?>document.getElementById('colselect').submit();<?php } ?>" <?php if ($collection_dropdown_user_access_mode){?>class="SearchWidthExp"<?php } else { ?> class="SearchWidth"<?php } ?>>
+		<div style="padding:0;margin:0;"><?php echo $lang["currentcollection"]?>: 
+		<br /><select name="collection" id="collection" onchange="if(document.getElementById('collection').value=='new'){document.getElementById('entername').style.display='block';document.getElementById('entername').focus();return false;} <?php if (!checkperm("b")){ ?>ChangeCollection(jQuery(this).val(),'<?php echo urlencode($k)  ?>','<?php echo urlencode($usercollection) ?>','<?php echo $change_col_url?>');<?php } else { ?>document.getElementById('colselect').submit();<?php } ?>" <?php if ($collection_dropdown_user_access_mode){?>class="SearchWidthExp"<?php } else { ?> class="SearchWidth"<?php } ?>>
 		<?php
 		$found=false;
 		for ($n=0;$n<count($list);$n++)
@@ -801,6 +802,7 @@ elseif ($k!="" && !$internal_share_access)
 		<?php } ?>
 
 		</select>
+        <br /><small><?php echo $count_result . " "; if ($count_result==1){echo $lang["item"];} else {echo $lang["items"];} ?></small>
 		<input type=text id="entername" name="entername" style="display:none;" placeholder="<?php echo $lang['entercollectionname']?>" <?php if ($collection_dropdown_user_access_mode){?>class="SearchWidthExp"<?php } else { ?> class="SearchWidth"<?php } ?>>
 		</div>			
   </form>
