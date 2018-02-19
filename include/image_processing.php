@@ -2278,32 +2278,40 @@ function clear_file_checksum($resource){
 
 if (!function_exists("upload_preview")){
 function upload_preview($ref)
-	{
-		
-	hook ("removeannotations","",array($ref));		
-		
-	# Upload a preview image only.
-	$processfile=$_FILES['userfile'];
+    {		
+    hook ("removeannotations","",array($ref));		
+        
+    # Upload a preview image only.
+    $processfile=$_FILES['userfile'];
     $filename=strtolower(str_replace(" ","_",$processfile['name']));
     
     # Work out extension
-    $extension=explode(".",$filename);$extension=trim(strtolower($extension[count($extension)-1]));
-    if ($extension=="jpeg"){$extension="jpg";}
-
-	# Move uploaded file into position.	
+    $extension=explode(".",$filename);
+    $extension=trim(strtolower($extension[count($extension)-1]));
+    if ($extension=="jpeg")
+        {
+        $extension="jpg";
+        }
+    
+    if ($extension != "jpg")
+        {
+        return false;
+        }    
+    
+    # Move uploaded file into position.	
     $filepath=get_resource_path($ref,true,"tmp",true,$extension);
     $result=move_uploaded_file($processfile['tmp_name'], $filepath);
-   	if ($result!=false) {chmod($filepath,0777);}
+    if ($result!=false) {chmod($filepath,0777);}
     
-	# Create previews
-	create_previews($ref,false,$extension,true);
-
-	# Delete temporary file, if not transcoding.
-	if(!sql_value("SELECT is_transcoding value FROM resource WHERE ref = '".escape_check($ref)."'", false))
-		{
-		unlink($filepath);
-		}
-
+    # Create previews
+    create_previews($ref,false,$extension,true);
+    
+    # Delete temporary file, if not transcoding.
+    if(!sql_value("SELECT is_transcoding value FROM resource WHERE ref = '".escape_check($ref)."'", false))
+        {
+        unlink($filepath);
+        }
+    
     return true;
     }}
  
@@ -2596,7 +2604,7 @@ function extract_icc($infile) {
       unlink($outfile);
    }
 
-    $cmd="$convert_fullpath '$infile" . "[0]'" . " '$outfile' $stderrclause";
+    $cmd = $convert_fullpath . " \"" . $infile . "[0]\" \"" . $outfile . "\" " .  $stderrclause;
     $cmdout = run_command($cmd);
 
    if ( preg_match("/no color profile is available/",$cmdout) || !file_exists($outfile) ||filesize_unlimited($outfile) == 0){

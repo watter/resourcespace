@@ -152,6 +152,13 @@ function get_collection_resources($collection)
 	{
 	# Returns all resources in collection
 	# For many cases (e.g. when displaying a collection for a user) a search is used instead so permissions etc. are honoured.
+	
+	$plugin_collection_resources=hook('replace_get_collection_resources');
+	if(is_array($plugin_collection_resources))
+		{
+		return $plugin_collection_resources;
+		}	
+	
 	return sql_array("select resource value from collection_resource where collection='$collection' order by sortorder asc, date_added desc, resource desc"); 
 	}
 	
@@ -872,10 +879,10 @@ function get_theme_headers($themes=array())
 			$selecting="theme".($x+2);
 		}	
 		if (isset($themes[$x]) && $themes[$x]!="" && $x==0) {
-			$sql.=" and theme LIKE '%" . escape_check($themes[$x]) . "%'";
+			$sql.=" and theme LIKE '%" . escape_check($themes[$x]) . "'";
 		}
 		else if (isset($themes[$x])&& $themes[$x]!=""&& $x!=0) {
-			$sql.=" and theme".($x+1)." LIKE '%" . escape_check($themes[$x]) . "%'";
+			$sql.=" and theme".($x+1)." LIKE '%" . escape_check($themes[$x]) . "'";
 		}
 	}	
 	$return=array();
@@ -2382,7 +2389,7 @@ function compile_collection_actions(array $collection_data, $top_actions, $resou
         }
         
     // View all
-    if(($k=="" || $internal_share_access) && (isset($collection_data["c"]) && $collection_data["c"]>0) || count($result) > 0)
+    if(($k=="" || $internal_share_access) && (isset($collection_data["c"]) && $collection_data["c"]>0) || (is_array($result) && count($result) > 0))
         {
         $data_attribute['url'] =  $baseurl_short . 'pages/search.php?search=!collection' . urlencode($collection_data['ref']) . "&k=" . urlencode($k);
         $options[$o]['value']='view_all_resources_in_collection';
@@ -2419,7 +2426,7 @@ function compile_collection_actions(array $collection_data, $top_actions, $resou
     // Note: functionality moved from edit collection page
     if(($k=="" || $internal_share_access) 
 		&& !$top_actions
-        && (count($result) != 0 || $count_result != 0)
+        && ((is_array($result) && count($result) != 0) || $count_result != 0)
         && (isset($allow_resource_deletion) && $allow_resource_deletion)
         && collection_writeable($collection_data['ref'])
         && $allow_multi_edit
@@ -2431,7 +2438,7 @@ function compile_collection_actions(array $collection_data, $top_actions, $resou
         }
 
     // Preview all
-    if(count($result) != 0 && ($k=="" || $internal_share_access) && $preview_all)
+    if((is_array($result) && count($result) != 0) && ($k=="" || $internal_share_access) && $preview_all)
         {
         $extra_tag_attributes = sprintf('
                 data-url="%spages/preview_all.php?ref=%s"
@@ -2660,3 +2667,33 @@ function new_featured_collection_form(array $themearray = array())
 
     return;
 	}
+    
+/**
+* Obtain details of the last resource edited in the given collection.
+*
+* @param int $collection    Collection ID
+*
+* @return array | false     Array containing fetailsof last edit (resource ID, timestamp and username of user who performed edit)
+*/    
+function get_last_resource_edit($collection)
+    {
+    if(!is_numeric($collection))
+        {
+        return false;
+        }
+    $plugin_last_resource_edit=hook('override_last_resource_edit');
+    if($plugin_last_resource_edit===true){
+    	return true;
+    }
+    $lastmodified  = sql_query("SELECT r.ref, r.modified FROM collection_resource cr LEFT JOIN resource r ON cr.resource=r.ref WHERE cr.collection='" . $collection . "' ORDER BY r.modified DESC");
+    $lastuserdetails = sql_query("SELECT u.username, u.fullname, rl.date FROM resource_log rl LEFT JOIN user u on u.ref=rl.user WHERE rl.resource ='" . $lastmodified[0]["ref"] . "' AND rl.type='e'");
+    if(count($lastuserdetails) == 0)
+        {
+        return true;
+        }
+        
+    $timestamp = max($lastuserdetails[0]["date"],$lastmodified[0]["modified"]);
+        
+    $lastusername = (trim($lastuserdetails[0]["fullname"]) != "") ? $lastuserdetails[0]["fullname"] : $lastuserdetails[0]["username"];
+    return array("ref" => $lastmodified[0]["ref"],"time" => $timestamp, "user" => $lastusername);
+    }

@@ -156,6 +156,7 @@ define ('RESOURCE_LOG_APPEND_PREVIOUS', -1);    // used to specify that we want 
 // Global definition of link bullet carets - easy to change link caret style in the future.
 define('LINK_CARET','<i aria-hidden="true" class="fa fa-caret-right"></i>&nbsp;'); 
 define('LINK_CARET_BACK','<i aria-hidden="true" class="fa fa-caret-left"></i>&nbsp;');
+define('LINK_CARET_PLUS','<i aria-hidden="true" class="fa fa-plus"></i>&nbsp;');
 define ('NODE_TOKEN_PREFIX','@@');
 define ('NODE_TOKEN_OR','|');
 define ('NODE_TOKEN_NOT','!');
@@ -189,3 +190,35 @@ $h264_profiles=array(
     "High"=>"6400",
     "Extended"=>"58A0"    
     );
+
+// Array of default html tags that are permitted in field data
+$permitted_html_tags =  array(
+            'html',
+            'body',
+            'div',
+            'span',
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            'br',
+            'em',
+            'strong',
+            'ol',
+            'ul',
+            'li',
+            'small',
+            'sub',
+            'ins',
+            'del',
+            'mark',
+            'b',
+            'u',
+            'p',
+            'i'
+        );
+
+// Array of default html attributes that are permitted in field data
+$permitted_html_attributes = array('id', 'class', 'style');

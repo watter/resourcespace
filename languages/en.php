@@ -1917,7 +1917,9 @@ $lang["descending"] = "Descending";
 $lang["sort-type"] = "Sort type";
 $lang["collection-order"] = "Collection order";
 $lang["save-error"]="!! Error auto saving - please save manually !!";
-$lang["save-conflict-error"]="Edit conflict. Please reload the page"; 
+$lang["save-conflict-error"]="Edit conflict. Please reload the page";
+$lang["save-conflict-multiple"]="Edit conflict. Please reload the page";
+$lang["save-conflict-title"]="Edit conflict"; 
 
 $lang["theme_home_promote"]="Promote on the home page?";
 $lang["theme_home_page_text"]="Home page text";
@@ -2666,10 +2668,10 @@ $lang['error_upload_resource_alternatives_batch'] = 'When using this feature (se
 $lang['error_upload_resource_not_found'] = 'A resource ID could not be found!';
 
 $lang['image_quality_100'] = "Maximum";
-$lang['image_quality_75'] = "High";
-$lang['image_quality_50'] = "Medium";
-$lang['image_quality_25'] = "Low";
-$lang['image_quality_1'] = "Very low";
+$lang['image_quality_92'] = "Print";
+$lang['image_quality_80'] = "Web";
+$lang['image_quality_50'] = "Low";
+$lang['image_quality_40'] = "Very low";
 
 /* IIIF */
 $lang['systemconfig_api'] = "API";

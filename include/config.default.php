@@ -458,7 +458,7 @@ $imagemagick_quality=90; # JPEG quality (0=worst quality/lowest filesize, 100=be
 # Preset quality settings. Used by transform plugin to allow user to select desired from a range of preset quality setting.
 # If adding extra quality settings, an accompanying $lang setting must be set e.g. in a plugin language file or using site text (Manage content)
 # e.g. $lang['image_quality_10'] = "";
-$image_quality_presets = array(100,75,50,25,1);
+$image_quality_presets = array(100,92,80,50,40);
 
 # Allow unique quality settings for each preview size. This will use $imagemagick_quality as a default setting.
 # If you want to adjust the quality settings for internal previews you must also set $internal_preview_sizes_editable=true
@@ -613,6 +613,7 @@ $ffmpeg_preview_force = true;
 $video_preview_original=false;
 
 # Encode preview asynchronous?
+# REQUIRES: $php_path
 $ffmpeg_preview_async=false;
 
 # Find out and obey the Pixel Aspect Ratio
@@ -1738,7 +1739,9 @@ $related_resources_title_trim=15;
 # SORT Fields: display fields to be added to the sort links in large,small, and xlarge thumbnail views
 $sort_fields=array(12);
 
-# TITLE field that should be used as title on the View and Collections pages.
+# TITLE field: Default title for all resources 
+# Should be used as title on the View and Collections pages.
+# This field will be inherited even if Inherit Global fields is set to false.
 $view_title_field=8; 
 
 # Searchable Date Field:
@@ -2126,7 +2129,7 @@ $staticsync_defaultstate=0;
 # Archive state to set for resources where files have been deleted/moved from syncdir
 $staticsync_deleted_state=2;
 # Optional array of archive states for which missing files will be ignored and not marked as deleted, useful when using offline_archive plugin.
-//$staticsync_ignore_deletion_states=array(2,3);
+$staticsync_ignore_deletion_states = array(2, 3);
 
 # staticsync_revive_state - if this is set then deleted items that later reappear will be moved to this archive state
 # $staticsync_revive_state=-1;

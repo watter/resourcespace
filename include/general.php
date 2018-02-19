@@ -456,6 +456,8 @@ function get_resource_field_data($ref,$multi=false,$use_permissions=true,$origin
     # for this resource, for display in an edit / view form.
     # Standard field titles are translated using $lang.  Custom field titles are i18n translated.
 
+    global $view_title_field;
+
     # Find the resource type.
     if ($originalref==-1) {$originalref = $ref;} # When a template has been selected, only show fields for the type of the original resource ref, not the template (which shows fields for all types)
     $rtype = sql_value("select resource_type value FROM resource WHERE ref='$originalref'",0);
@@ -528,6 +530,20 @@ function get_resource_field_data($ref,$multi=false,$use_permissions=true,$origin
     if(!$inherit_global_fields)
         {
         $validtypes = array($rtype);
+
+        # Add title field even if $inherit_global_fields = false
+        for ($n = 0; $n < count($fields); $n++)
+            {
+                if  
+                    (
+                        $fields[$n]['ref'] == $view_title_field  #Check field against $title_field for default title reference
+                        && (checkperm("f*") || checkperm("f" . $fields[$n]["fref"])) #Check permissions to access title field
+                    )
+                            {
+                                $return[] = $fields[$n];
+                                break;
+                            }
+            }
         }
 
     for ($n = 0; $n < count($fields); $n++)
@@ -687,7 +703,7 @@ if (!function_exists("split_keywords")){
 function split_keywords($search,$index=false,$partial_index=false,$is_date=false,$is_html=false, $keepquotes=false)
 	{
 	# Takes $search and returns an array of individual keywords.
-	global $config_trimchars;
+	global $config_trimchars,$permitted_html_tags, $permitted_html_attributes;
 
 	if ($index && $is_date)
 		{
@@ -709,12 +725,31 @@ function split_keywords($search,$index=false,$partial_index=false,$is_date=false
 	$search=str_replace("\\r"," ",$search);
 	$search=str_replace("\\n"," ",$search);
     
-    if($is_html)
+    if($is_html || (substr($search,0,1) == "<" && substr($search,-1,1) == ">"))
         {
         // String can't be in encoded format at this point or string won't be indexed correctly.
         $search=html_entity_decode($search);
+        if($index)
+            {
+            // Clean up html for indexing
+            // Allow indexing of anchor text
+            $allowed_tags = array_merge(array("a"),$permitted_html_tags);
+            $allowed_attributes = array_merge(array("href"),$permitted_html_attributes);
+            $search=strip_tags_and_attributes($search,$allowed_tags,$allowed_attributes);
+            
+            // Get rid of the actual html tags and attribute ids to prevent indexing these
+            foreach ($allowed_tags as $allowed_tag)
+                {
+                $search=str_replace(array("<" . $allowed_tag . ">","<" . $allowed_tag,"</" . $allowed_tag)," ",$search);
+                }
+            foreach ($allowed_attributes as $allowed_attribute)
+                {
+                $search=str_replace($allowed_attribute . "="," ",$search);
+                }
+            // Remove any left over tag parts
+            $search=str_replace(array(">", "<","="), " ",$search);
+            }
         }
-
 
 	$ns=trim_spaces($search);
 
@@ -2261,6 +2296,10 @@ function get_site_text($page,$name,$getlanguage,$group)
     if (array_key_exists($key,$lang))
         {
         return $lang[$key];
+        }
+    elseif (array_key_exists("all_" . $key,$lang))
+        {
+        return $lang["all_" . $key];
         }
     else
         {
@@ -5337,6 +5376,21 @@ function get_utility_path($utilityname, &$checked_path = null)
                     'win'  => 'fits.bat'
                 ),
                 $checked_path);
+
+        case 'php':
+            global $php_path;
+
+            if(!isset($php_path) || $php_path == '')
+                {
+                return false;
+                }
+
+            $executable = array(
+                'unix' => 'php',
+                'win'  => 'php.exe'
+            );
+
+            return get_executable_path($php_path, $executable, $checked_path);
         }
 
     // No utility path found
@@ -5535,7 +5589,13 @@ function rs_setcookie($name, $value, $daysexpire = 0, $path = "", $domain = "", 
     {
     # Note! The argument $daysexpire is not the same as the argument $expire in the PHP internal function setcookie.
     # Note! The $path argument is not used if $global_cookies = true
-
+    global $baseurl_short;
+    
+    if($path == "")
+        {
+        $path =  $baseurl_short;     
+        }
+        
     if (php_sapi_name()=="cli") {return true;} # Bypass when running from the command line (e.g. for the test scripts).
     
     global $baseurl_short, $global_cookies;
@@ -6502,11 +6562,12 @@ function delete_old_collections($userref=0, $days=30)
 * @param integer $restype - resource type - resource type that field applies to (0 = global)
 * @param integer $type - field type - refer to include/definitions.php
 * @param string $shortname - shortname of new field 
+* @param boolean $index - should new field be indexed? 
 * 
 * @return boolean|integer - ref of new field, false if unsuccessful
 */
 
-function create_resource_type_field($name,$restype = 0, $type = FIELD_TYPE_TEXT_BOX_SINGLE_LINE, $shortname = "")
+function create_resource_type_field($name,$restype = 0, $type = FIELD_TYPE_TEXT_BOX_SINGLE_LINE, $shortname = "", $index=false)
     {
     if((trim($name)=="") || !is_numeric($type) || !is_numeric($restype))
         {
@@ -6518,7 +6579,7 @@ function create_resource_type_field($name,$restype = 0, $type = FIELD_TYPE_TEXT_
         $shortname = mb_substr(mb_strtolower(str_replace("_","",safe_file_name($name))),0,20);
         }
 
-	sql_query("insert into resource_type_field (title,resource_type, type, name) values ('" . escape_check($name) . "','" . escape_check($restype) . "','" . escape_check($type) . "','" . escape_check($shortname) . "')");
+	sql_query("insert into resource_type_field (title,resource_type, type, name, keywords_index) values ('" . escape_check($name) . "','" . escape_check($restype) . "','" . escape_check($type) . "','" . escape_check($shortname) . "'," . ($index ? "1" : "0") . ")");
 	$new=sql_insert_id();
 	log_activity(null,LOG_CODE_CREATED,$name,'resource_type_field','title',$new,null,'');
     return $new;    
