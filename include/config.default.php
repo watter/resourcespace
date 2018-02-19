@@ -3353,8 +3353,11 @@ $iiif_enabled = false;
 // Field that contains license information about the resource
 // $$iiif_license_field = 0;
 //
-// Field that defines the position of a particular resource in the default  sequence (only one sequence currently supported)
+// Field that defines the position of a particular resource in the default sequence (only one sequence currently supported)
 // $iiif_sequence_field = 1;
+//
+// Optional prefix that will be added to sequence identifier - useful if just numeric identifers are used e.g. for different views or pages 
+// $iiif_sequence_prefix = "View ";
 
 
 /*Prevent client side users to get access to the real path of the resource when ResourceSpace is using filestore URLs.
