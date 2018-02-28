@@ -20,6 +20,7 @@ $archive      = getvalescaped("archive", 0, true);
 $starsearch   = getvalescaped("starsearch", "");
 $default_sort_direction = (substr($order_by,0,5) == "field") ? "ASC" : "DESC";
 $sort         = getval("sort", $default_sort_direction);
+$ajax         = filter_var(getval("ajax", false), FILTER_VALIDATE_BOOLEAN);
 
 # Check if editing existing external share
 $editaccess   = getvalescaped("editaccess", "");
@@ -43,7 +44,7 @@ $internal_share_only=checkperm("noex");
         
 # Process deletion of access keys
 $deleteaccess = getvalescaped('deleteaccess', '');
-if ('' != $deleteaccess)
+if ('' != $deleteaccess && enforcePostRequest($ajax))
     {
     delete_resource_access_key($ref, $deleteaccess);
     resource_log($ref, LOG_CODE_SYSTEM, '', '', '', str_replace('%access_key', $deleteaccess, $lang['access_key_deleted']));
@@ -52,7 +53,7 @@ if ('' != $deleteaccess)
 # Process deletion of custom user access
 $deleteusercustomaccess = getvalescaped('deleteusercustomaccess', '');
 $user = getvalescaped('user', '');
-if ($deleteusercustomaccess=='yes' && checkperm('v'))
+if ($deleteusercustomaccess=='yes' && checkperm('v') && enforcePostRequest($ajax))
     {
     delete_resource_custom_user_access($ref, $user);
     resource_log($ref,'a', '', $lang['log-removedcustomuseraccess'] . $user);
@@ -94,7 +95,7 @@ if($editing && !$editexternalurl)
             <input type="hidden" name="editaccesslevel" id="editaccesslevel" value="">
 			<input type="hidden" name="user" id="user" value="">
 			<input type="hidden" name="deleteusercustomaccess" id="deleteusercustomaccess" value="">
-
+            <?php generateFormToken("resourceshareform"); ?>
             <div class="VerticalNav">
                 <ul>
                 <?php

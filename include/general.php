@@ -6595,7 +6595,7 @@ function generateFormToken($form_id)
 * 
 * @param  boolean  $ajax  Set to TRUE if request is done via AJAX
 * 
-* @return  void  Sends 405 header if requested method is not POST
+* @return  boolean|void  Returns true if request method is POST or sends 405 header otherwise
 */
 function enforcePostRequest($ajax)
     {
