@@ -58,6 +58,9 @@ function create_dash_tile($url,$link,$title,$reload_interval,$all_users,$default
 		sql_query("DELETE FROM user_dash_tile WHERE dash_tile=".$tile);
 		$result = sql_query("INSERT user_dash_tile (user,dash_tile,order_by) SELECT user.ref,'".$tile."',5 FROM user");
 		}
+	
+	hook('after_create_dash_tile', '', array($tile));
+	
 	return $tile;
 	}
 
@@ -102,6 +105,8 @@ function update_dash_tile($tile,$url,$link,$title,$reload_interval,$all_users,$d
 		sql_query("DELETE FROM user_dash_tile WHERE dash_tile=".$tile["ref"]);
 		sql_query("INSERT user_dash_tile (user,dash_tile,order_by) SELECT user.ref,'".$tile["ref"]."',5 FROM user");
 		}
+		
+	hook('after_update_dash_tile');
 	}
 
 /*
@@ -573,7 +578,12 @@ function get_managed_dash()
                 ?>
 			href="<?php echo $link?>" <?php echo $newtab ? "target='_blank'" : "";?>
 			onClick="<?php echo (!$newtab ? 'return ' . (($help_modal && strpos($link,'pages/help.php')!==false)?'ModalLoad(this,true);':'CentralSpaceLoad(this,true);') : ''); ?>"
-			class="HomePanel DashTile DashTileDraggable" 
+
+			<?php
+			# Check if tile is set to double width
+			$tlsize = (isset($buildstring['tlsize']) ? $buildstring['tlsize'] : '');
+			?>
+			class="HomePanel DashTile DashTileDraggable <?php echo ('double' == $tlsize ? 'DoubleWidthDashTile' : ''); ?>" 
 			id="tile<?php echo htmlspecialchars($tile["tile"]);?>"
 		>
 			<div id="contents_tile<?php echo htmlspecialchars($tile["tile"]);?>" class="HomePanelIN HomePanelDynamicDash <?php echo ($dash_tile_shadows)? "TileContentShadow":"";?>" style="<?php echo $tile_custom_style; ?>">
@@ -1214,9 +1224,9 @@ function build_dash_tile_list($dtiles_available)
   			<td>
   				<?php 
   				if(isset($buildstring["tltype"]) && $buildstring["tltype"]=="conf" && $buildstring["tlstyle"]!="custm" && $buildstring["tlstyle"]!="pend" && isset($lang[$tile["title"]]))
-  					{echo i18n_get_translated($lang[$tile["title"]]);}
+  					{echo htmlspecialchars(i18n_get_translated($lang[$tile["title"]]));}
   				else 
-  					{echo i18n_get_translated($tile["title"]);}
+  					{echo htmlspecialchars(i18n_get_translated($tile["title"]));}
   				?>
   			</td>
   			<td>
@@ -1227,7 +1237,7 @@ function build_dash_tile_list($dtiles_available)
   					{
 					if(isset($lang[strtolower($tile['txt'])]))
 						{
-						$tile['txt'] = $lang[strtolower($tile["txt"])];
+						$tile['txt'] = htmlspecialchars($lang[strtolower($tile["txt"])]);
 						}
 					else
 						{
@@ -1237,20 +1247,20 @@ function build_dash_tile_list($dtiles_available)
   				
   				if(strlen($tile["txt"])>75)
   					{
-  					echo substr(i18n_get_translated($tile["txt"]),0,72)."...";
+  					echo htmlspecialchars(substr(i18n_get_translated($tile["txt"]),0,72)."...");
   					}
   				else
   					{
-  					echo i18n_get_translated($tile["txt"]);
+  					echo htmlspecialchars(i18n_get_translated($tile["txt"]));
   					}
   				?>
   			</td>
   			<td>
   				<a 
-  					href="<?php echo (mb_strtolower(substr($tile["link"],0,4))=="http")? $tile["link"]: $baseurl."/".htmlspecialchars($tile["link"]);?>"
+  					href="<?php echo (mb_strtolower(substr($tile["link"],0,4))=="http")? htmlspecialchars($tile["link"]): $baseurl."/".htmlspecialchars($tile["link"]);?>"
   					target="_blank"
   				>
-  					<?php echo $lang["dashtilevisitlink"];?>
+  					<?php echo htmlspecialchars($lang["dashtilevisitlink"]); ?>
   				</a>
   			</td>
   			<td><?php echo $tile["resource_count"]? $lang["yes"]: $lang["no"];?></td>

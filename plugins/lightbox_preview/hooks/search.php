@@ -5,7 +5,7 @@ include dirname(__FILE__) . "/../include/utility.php";
 function HookLightbox_previewSearchReplacefullscreenpreviewicon()
 	{
 	global $baseurl_short, $ref, $result, $n, $k, $search, $offset, $sort, $order_by, $archive,
-			$lang, $showkeypreview, $value;
+			$lang, $showkeypreview, $value, $view_title_field;
 
 	$url = getPreviewURL($result[$n]);
 	if ($url === false)
@@ -22,8 +22,9 @@ function HookLightbox_previewSearchReplacefullscreenpreviewicon()
 			echo urlencode($order_by)?>&sort=<?php echo urlencode($sort)?>&archive=<?php
 			echo urlencode($archive)?>&k=<?php echo urlencode($k)?>" title="<?php
 			echo $lang["fullscreenpreview"]?>"></a></span>
+			
 	<?php
-	setLink('#previewlink' . $ref, $url, $value);
+	setLink('#previewlink' . $ref, $url, $result[$n]["field".$view_title_field]);
 	return true;
 	}
 

@@ -116,10 +116,13 @@ function render_search_field($field,$value="",$autoupdate,$class="stdwidth",$for
 							}
                         else
                             {
-
                             $checkname = "nodes_searched[{$fields[$cf]['ref']}][]";
                             $jquery_selector = "input[name=\"{$checkname}\"]";
-                            if(FIELD_TYPE_DROP_DOWN_LIST == $fields[$cf]['type'] && true == $fields[$cf]['display_as_dropdown'])
+                            if  (
+                                FIELD_TYPE_DROP_DOWN_LIST == $fields[$cf]['type']
+                                ||
+                                (in_array($fields[$cf]['type'], array(FIELD_TYPE_CHECK_BOX_LIST, FIELD_TYPE_RADIO_BUTTONS)) && true == $fields[$cf]['display_as_dropdown'])
+                                )
                                 {
                                 $checkname       = "nodes_searched[{$fields[$cf]['ref']}]";
                                 $jquery_selector = "select[name=\"{$checkname}\"]";
@@ -194,13 +197,17 @@ function render_search_field($field,$value="",$autoupdate,$class="stdwidth",$for
                     $jquery_condition_selector = "input[name=\"nodes_searched[{$scriptcondition['field']}][]\"]";
                     $js_conditional_statement  = "fieldokvalues{$scriptcondition['field']}.indexOf(element.value) != -1";
 
-                    if(in_array($scriptcondition['type'], array(FIELD_TYPE_CHECK_BOX_LIST, FIELD_TYPE_RADIO_BUTTONS))
-                        || (FIELD_TYPE_DROP_DOWN_LIST == $scriptcondition['type'] && false == $scriptcondition['display_as_dropdown']))
+                    if  (
+                        in_array($scriptcondition['type'], array(FIELD_TYPE_CHECK_BOX_LIST, FIELD_TYPE_RADIO_BUTTONS))
+                        &&
+                        false == $scriptcondition['display_as_dropdown']
+                        )
                         {
                         $js_conditional_statement = "jQuery(this).prop('checked') && {$js_conditional_statement}";
                         }
 
-                    if(FIELD_TYPE_DROP_DOWN_LIST == $scriptcondition['type'] && true == $scriptcondition['display_as_dropdown'])
+                    if((in_array($scriptcondition['type'], array(FIELD_TYPE_CHECK_BOX_LIST, FIELD_TYPE_RADIO_BUTTONS)) && true == $scriptcondition['display_as_dropdown'])
+                        || FIELD_TYPE_DROP_DOWN_LIST == $scriptcondition['type'] )
                         {
                         $jquery_condition_selector = "select[name=\"nodes_searched[{$scriptcondition['field']}]\"] option:selected";
                         }
@@ -573,7 +580,6 @@ function render_search_field($field,$value="",$autoupdate,$class="stdwidth",$for
                     
         break;
         
-        
         case FIELD_TYPE_CATEGORY_TREE:
         global $category_tree_add_parents, $category_tree_search_use_and;
 
@@ -614,42 +620,35 @@ function render_search_field($field,$value="",$autoupdate,$class="stdwidth",$for
                     <?php echo $status_box_elements; ?>
                 </div>
                 <div id="cattree_<?php echo $fields[$n]['name']; ?>" class="RecordPanel PopupCategoryTree">
-                    <p align="right">
-                        <a href="#" onClick="document.getElementById('cattree_<?php echo $field['name']; ?>').style.display='none'; return false;"><?php echo $lang['close']; ?></a>
-                    </p>
                     <?php
                     include __DIR__ . '/../pages/edit_fields/7.php';
 
                     // Reset category_tree_open because normally searchbar occurs before edit/ advanced search page
                     $category_tree_open = $original_category_tree_open;
                     ?>
-                 </div>
-                <a href="#"
-                   onClick="
-                        jQuery('#cattree_<?php echo $field['name']; ?>').css('top', (jQuery(this).position().top) - 200);
-                        jQuery('#cattree_<?php echo $field['name']; ?>').css('left', (jQuery(this).position().left) - 400);
-                        jQuery('#cattree_<?php echo $field['name']; ?>').show();
-                        jQuery('#cattree_<?php echo $field['name']; ?>').draggable();
-                        return false;"><?php echo $lang['select']; ?></a>
+                </div>
+                <a href="<?php echo "$baseurl/pages/category_tree.php?fieldname=" . $field['name'] . "&fieldref=" . $field['ref']; ?>"
+                   onClick="jQuery('#cattree_<?php echo $field['name']; ?>').show();
+                        return ModalLoad(this, true, true);"><?php echo $lang['select']; ?></a>
             </div>
 			<?php
 			# Add to clear function
 			$clear_function .= "
-                    jQuery('#search_tree_{$field['ref']}').jstree(true).deselect_all();
+                jQuery('#search_tree_{$field['ref']}').jstree(true).deselect_all();
 
-                    /* remove the hidden inputs */
-                    var elements = document.getElementsByName('nodes_searched[{$field['ref']}][]');
-                    while(elements[0])
-                        {
-                        elements[0].parentNode.removeChild(elements[0]);
-                        }
+                /* remove the hidden inputs */
+                var elements = document.getElementsByName('nodes_searched[{$field['ref']}][]');
+                while(elements[0])
+                    {
+                    elements[0].parentNode.removeChild(elements[0]);
+                    }
 
-                    /* update status box */
-                    var node_statusbox = document.getElementById('nodes_searched_{$field['ref']}_statusbox');
-                    while(node_statusbox.lastChild)
-                        {
-                        node_statusbox.removeChild(node_statusbox.lastChild);
-                        }
+                /* update status box */
+                var node_statusbox = document.getElementById('nodes_searched_{$field['ref']}_statusbox');
+                while(node_statusbox.lastChild)
+                    {
+                    node_statusbox.removeChild(node_statusbox.lastChild);
+                    }
                 ";
             }
         else

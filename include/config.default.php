@@ -455,6 +455,11 @@ $filename_field=51;
 $imagemagick_preserve_profiles=false;
 $imagemagick_quality=90; # JPEG quality (0=worst quality/lowest filesize, 100=best quality/highest filesize)
 
+# Preset quality settings. Used by transform plugin to allow user to select desired from a range of preset quality setting.
+# If adding extra quality settings, an accompanying $lang setting must be set e.g. in a plugin language file or using site text (Manage content)
+# e.g. $lang['image_quality_10'] = "";
+$image_quality_presets = array(100,92,80,50,40);
+
 # Allow unique quality settings for each preview size. This will use $imagemagick_quality as a default setting.
 # If you want to adjust the quality settings for internal previews you must also set $internal_preview_sizes_editable=true
 $preview_quality_unique=false;
@@ -608,6 +613,7 @@ $ffmpeg_preview_force = true;
 $video_preview_original=false;
 
 # Encode preview asynchronous?
+# REQUIRES: $php_path
 $ffmpeg_preview_async=false;
 
 # Find out and obey the Pixel Aspect Ratio
@@ -1733,7 +1739,9 @@ $related_resources_title_trim=15;
 # SORT Fields: display fields to be added to the sort links in large,small, and xlarge thumbnail views
 $sort_fields=array(12);
 
-# TITLE field that should be used as title on the View and Collections pages.
+# TITLE field: Default title for all resources 
+# Should be used as title on the View and Collections pages.
+# This field will be inherited even if Inherit Global fields is set to false.
 $view_title_field=8; 
 
 # Searchable Date Field:
@@ -2121,7 +2129,7 @@ $staticsync_defaultstate=0;
 # Archive state to set for resources where files have been deleted/moved from syncdir
 $staticsync_deleted_state=2;
 # Optional array of archive states for which missing files will be ignored and not marked as deleted, useful when using offline_archive plugin.
-//$staticsync_ignore_deletion_states=array(2,3);
+$staticsync_ignore_deletion_states = array(2, 3);
 
 # staticsync_revive_state - if this is set then deleted items that later reappear will be moved to this archive state
 # $staticsync_revive_state=-1;
@@ -3331,8 +3339,33 @@ $annotate_read_only = false;
 
 // When using anonymous users, set to TRUE to allow anonymous users to add/ edit/ delete annotations
 $annotate_crud_anonymous = false;
+
+
 #######################################
+################################  IIIF:
 #######################################
+// Enable IIIF interface. See http://iiif.io for information on the IIIF standard
+// If set to true a URL rewrite rule or similar must be configured on the web server for any paths under the <base_url>/iiif path
+$iiif_enabled = false;
+
+// User ID to use for IIIF. This user should be granted access only to those resources that are to be published via IIIF using permissions and search filter
+// $iiif_userid = 0;
+//
+// Field that is used to hold the IIIF identifier e.g. if using TMS this may be the same as the TMS object field
+// $iiif_identifier_field = 29;
+//
+// Field that is used to hold the IIIF description
+// $iiif_description_field = 0;
+//
+// Field that contains license information about the resource
+// $iiif_license_field = 0;
+//
+// Field that defines the position of a particular resource in the default sequence (only one sequence currently supported)
+// $iiif_sequence_field = 1;
+//
+// Optional prefix that will be added to sequence identifier - useful if just numeric identifers are used e.g. for different views or pages 
+// $iiif_sequence_prefix = "View ";
+
 
 /*Prevent client side users to get access to the real path of the resource when ResourceSpace is using filestore URLs.
 Rather than use a URL like "http://yourdomain/filestore/1_6326bb8314c6c21/1pre_cf33a61f47b5982.jpg", it will use

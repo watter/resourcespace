@@ -11,7 +11,13 @@
  */
 include "../../include/db.php";
 include_once "../../include/general.php";
-include "../../include/authenticate.php";if (!checkperm("a")) {exit ("Permission denied.");}
+include "../../include/authenticate.php";
+
+if(!checkperm('a'))
+    {
+    header('HTTP/1.1 401 Unauthorized');
+    exit($lang['error-permissiondenied']);
+    }
 
 if (isset($_REQUEST['activate']))
    {
@@ -207,6 +213,45 @@ load_plugins($storagedir . '/plugins/');
 ksort ($plugins_avail);
 
 
+// Search functionality
+$searching          = (getval("searching", "") != "" && getval("clear_search", "") == "" ? true : false);
+$find               = getval("find", "");
+$search_placeholder = ($searching ? $find : $lang['plugins-search-plugin-placeholder']);
+
+/**
+* Find plugin which contains the searched text in the name/ description
+* 
+* @param array   $plugin  Plugin data array (either the installed/ available version)
+* @param string  $search  Searched text to find the plugin
+* 
+* @return boolean Returns TRUE if plugin data matches the search (mostly name and description), FALSE otherwise
+*/
+function findPluginFromSearch(array $plugin, $search)
+    {
+    // If we are not searching for anything in particular then 
+    if(trim($search) == "")
+        {
+        return true;
+        }
+
+    if(isset($plugin["name"]) && strpos($plugin["name"], $search) !== false)
+        {
+        return true;
+        }
+
+    if(isset($plugin["descrip"]) && strpos($plugin["descrip"], $search) !== false)
+        {
+        return true;
+        }
+
+    if(isset($plugin["desc"]) && strpos($plugin["desc"], $search) !== false)
+        {
+        return true;
+        }
+
+    return false;
+    }
+
 /*
  * Start Plugins Page Content
  */
@@ -243,7 +288,20 @@ include "../../include/header.php"; ?>
 })(jQuery);
 </script>
 <div class="BasicsBox"> 
-<h1><?php echo $lang["pluginmanager"]; ?></h1>
+<h1><?php echo $lang["pluginmanager"]; ?>
+    <form id="SearchPlugins" method="get">
+        <input type="text" name="find" placeholder="<?php echo htmlspecialchars($search_placeholder); ?>">
+        <input type="submit" name="searching" value="<?php echo htmlspecialchars($lang["searchbutton"]); ?>">
+    <?php
+    if($searching)
+        {
+        ?>
+        <input type="submit" name="clear_search" value="<?php echo htmlspecialchars($lang["clearbutton"]); ?>">
+        <?php
+        }
+        ?>
+    </form>
+</h1>
 <p><?php echo $lang["plugins-headertext"]; ?></p>
 <h2 class="pageline"><?php echo $lang['plugins-installedheader']; ?></h2>
 <?php hook("before_active_plugin_list");
@@ -266,6 +324,10 @@ if (count($inst_plugins)>0)
          <?php 
          foreach ($inst_plugins as $p)
             {
+            if($searching && !findPluginFromSearch($p, $find))
+                {
+                continue;
+                }
             # Make sure that the version number is displayed with at least one decimal place.
             # If the version number is 0 the displayed version is $lang["notavailableshort"].
             # (E.g. 0 -> (en:)N/A ; 1 -> 1.0 ; 0.92 -> 0.92)
@@ -334,11 +396,14 @@ else
 <?php 
 if (count($plugins_avail)>0) 
    { 
-   $plugin_categories=array();
-   $general_plugins=array();
-   $advanced_plugins=array();
+   $plugin_categories = array();
    foreach($plugins_avail as $p)
       {
+        if($searching && !findPluginFromSearch($p, $find))
+            {
+            continue;
+            }
+
       $plugin_row = '<tr><td>'.$p['name'].'</td><td>'.$p['desc'].'</td><td>'.$p['author'].'</td>';
       if ($p['version'] == 0)
          {
@@ -368,83 +433,64 @@ if (count($plugins_avail)>0)
             $p_cats = explode(",",$p["category"]);
             foreach($p_cats as $p_cat)
                {
-               $p_cat = trim(strtolower($p_cat));
-               if(strtolower($p_cat) == "advanced")
-                  {
-                  array_push($advanced_plugins,$plugin_row);
-                  unset($p_cats[array_search("advanced",$p_cats)]);
-                  }
-               elseif(strtolower($p_cat) =="general")
-                  {
-                  array_push($general_plugins,$plugin_row);
-                  unset($p_cats[array_search("general",$p_cats)]);
-                  }
-               else
-                  {
-                  if(!isset($plugin_categories[$p_cat]))
-                     {
-                     $plugin_categories[$p_cat]=array();
-                     }
-                  array_push($plugin_categories[$p_cat],$plugin_row);
-                  }
+                $p_cat = trim(strtolower($p_cat));
+                if(!isset($plugin_categories[$p_cat]))
+                    {
+                    $plugin_categories[$p_cat] = array();
+                    }
+                array_push($plugin_categories[$p_cat], $plugin_row);
                }
             }
-         else 
-            {
-            if($p["category"]=="advanced"){array_push($advanced_plugins,$plugin_row);}
          else 
             {
             if(!isset($plugin_categories[$p["category"]]))
                {
-               $plugin_categories[$p["category"]]=array();
+               $plugin_categories[$p["category"]] = array();
                }
-            array_push($plugin_categories[$p["category"]],$plugin_row);
-            }
+
+            array_push($plugin_categories[$p["category"]], $plugin_row);
             }
          }
-      else
-         {
-         $general_plugins[] = $plugin_row;
-         }
-      }
-   function display_plugin_category($plugins,$category,$header=true) 
-      { 
-      global $lang;
-      ?>
-      <div class="plugin-category-container">
-      <?php 
-      if($header)
-         { ?>
-         <h3 class="CollapsiblePluginListHead collapsed"><?php echo isset($lang["plugin_category_".$category])? $lang["plugin_category_".$category] : $category ?></h3>
-         <?php
-         } ?>
-         <div class="Listview CollapsiblePluginList">
-            <table border="0" cellspacing="0" cellpadding="0" class="ListviewStyle">
-               <thead>
-               <tr class="ListviewTitleStyle">
-                  <td><?php echo $lang['name']; ?></td>
-                  <td><?php echo $lang['description']; ?></td>
-                  <td><?php echo $lang['plugins-author']; ?></td>
-                  <td><?php echo $lang['plugins-version']; ?></td>
-                  <td><div class="ListTools"><?php echo $lang['tools']; ?></div></td>
-               </tr>
-               </thead>
-               <tbody>
-               <?php
-               foreach($plugins as $plugin)
-                  {
-                  echo $plugin;
-                  }
-               ?>
-               </tbody>
-            </table>
-         </div>
-      </div>
-      <?php
       }
 
-   # General Plugins
-   display_plugin_category($general_plugins,"general",(count($plugin_categories)>0));
+function display_plugin_category($plugins,$category,$header=true) 
+    { 
+    global $lang;
+    ?>
+    <div class="plugin-category-container">
+    <?php 
+    if($header)
+        {
+        $category_name = isset($lang["plugin_category_{$category}"]) ? $lang["plugin_category_{$category}"] : $category;
+        ?>
+        <h3 class="CollapsiblePluginListHead collapsed"><?php echo htmlspecialchars($category_name); ?></h3>
+        <?php
+        }
+        ?>
+        <div class="Listview CollapsiblePluginList">
+            <table border="0" cellspacing="0" cellpadding="0" class="ListviewStyle">
+                <thead>
+                    <tr class="ListviewTitleStyle">
+                    <td><?php echo $lang['name']; ?></td>
+                    <td><?php echo $lang['description']; ?></td>
+                    <td><?php echo $lang['plugins-author']; ?></td>
+                    <td><?php echo $lang['plugins-version']; ?></td>
+                    <td><div class="ListTools"><?php echo $lang['tools']; ?></div></td>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                foreach($plugins as $plugin)
+                    {
+                    echo $plugin;
+                    }
+                ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <?php
+    }
 
    # Category Specific plugins
    ksort($plugin_categories);
@@ -452,9 +498,7 @@ if (count($plugins_avail)>0)
       {
       display_plugin_category($plugins,$category);
       }
-
-   display_plugin_category($advanced_plugins,"advanced");
-   ?>
+    ?>
    <script>
       jQuery(".CollapsiblePluginListHead").click(function(){
          if(jQuery(this).hasClass("collapsed")) {

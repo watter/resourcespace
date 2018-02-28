@@ -261,6 +261,7 @@ div#SearchBox.SlimHeaderFixedPosition { margin-top: 80px; }
 #SearchBoxPanel {width: 280px;}
 #ResearchBoxPanel {width: 280px;margin-top: 15px;}
 #SearchBox .PopupCategoryTree { display: none; position: fixed; text-align: left; z-index: 999; }
+.BasicsBox .PopupCategoryTree {width: 540px; margin-bottom: 20px;}
 
 /*Resource Panel layout*/
 .ResourcePanel {padding:0;margin:0 14px 14px 0;width: 174px;float:left;height:230px;position:relative;}
@@ -459,7 +460,7 @@ a.HomePanel {text-decoration:none;}
 a.HomePanel {cursor:pointer;}
 
 
-.TabBar {padding:10px 0 0 0;}
+.TabBar {padding:10px 0 0 0;margin-bottom: -1px;}
 .Tab a {margin:0 5px 0 0;padding:5px;display:inline-block; border-top-right-radius:5px;border-top-left-radius:5px; }
 .Tab a:hover {text-decoration: none;}
 .Tab {display:inline;}
@@ -920,6 +921,10 @@ a.HomePanel:hover {
 .plugin-category-container .CollapsiblePluginList {margin-top:10px; margin-left: 30px;}
 .plugin-category-container{margin-bottom:10px;}
 .plugin-upload{margin-top:20px;}
+#SearchPlugins {
+    float: right;
+    font-size: 0.7em;
+}
 
 /* Maintenance Page */
 #system_down_container {
@@ -1393,4 +1398,9 @@ a.Enabled, a:visited.Enabled {
 .lock_icon {
     float: right;
     height: 30px;
+}
+
+/* jQuery UI */
+.ui-menu-item {
+    text-align: left;
 }

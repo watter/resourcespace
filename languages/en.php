@@ -1012,6 +1012,8 @@ $lang['relateallresources_confirmation'] = 'Are you sure you want to RELATE ALL 
 # New for 1.5
 $lang["columns"]="Columns";
 $lang["contactsheetconfiguration"]="Contact sheet configuration";
+$lang["contactsheet_data_field_value_limit"] = "Maximum characters per field";
+$lang["contactsheet_data_toolong"]="There is too much data to fit on one page. Please reduce the maximum characters per field, the amount of fields shown or choose an alternative page view";
 $lang["thumbnails"]="Thumbnails";
 $lang["contactsheetintrotext"]="Please select the configuration options you'd like for your contact sheet PDF. The preview will update automatically when you change your options, unless you change the order of resources in the collection, in which case you'll need to press the \"Preview\" button to update.<br />When you're ready, press \"Create\" to generate and download your contact sheet PDF.";
 $lang["size"]="Size";
@@ -1407,6 +1409,7 @@ $lang['plugins-goodrsc'] = 'Configuration uploaded ok. Click \'Save Configuratio
 $lang['plugins-badrsc'] = 'Sorry, that wasn\'t a valid .rsc file.';
 $lang['plugins-wrongplugin'] = 'Sorry, that\'s an .rsc file for the %plugin plugin. Choose one for this plugin.'; // %plugin is replaced by the name of the plugin being configured.
 $lang['plugins-configvar'] = 'Sets configuration variable: $%cvn'; //%cvn is replaced by the name of the config variable being set
+$lang['plugins-search-plugin-placeholder'] = 'Search plugins';
 
 #Location Data
 $lang['location-title'] = 'Location data';
@@ -1920,7 +1923,9 @@ $lang["descending"] = "Descending";
 $lang["sort-type"] = "Sort type";
 $lang["collection-order"] = "Collection order";
 $lang["save-error"]="!! Error auto saving - please save manually !!";
-$lang["save-conflict-error"]="Edit conflict. Please reload the page"; 
+$lang["save-conflict-error"]="Edit conflict. Please reload the page";
+$lang["save-conflict-multiple"]="Edit conflict. Please reload the page";
+$lang["save-conflict-title"]="Edit conflict"; 
 
 $lang["theme_home_promote"]="Promote on the home page?";
 $lang["theme_home_page_text"]="Home page text";
@@ -2667,3 +2672,15 @@ $lang["byte_prefix_mode_decimal"]="Use decimal for file sizes (1000 multiples, K
 /* Errors */
 $lang['error_upload_resource_alternatives_batch'] = 'When using this feature (see $upload_alternatives_suffix) your original file MUST be the first one in the queue!';
 $lang['error_upload_resource_not_found'] = 'A resource ID could not be found!';
+
+$lang['image_quality_100'] = "Maximum";
+$lang['image_quality_92'] = "Print";
+$lang['image_quality_80'] = "Web";
+$lang['image_quality_50'] = "Low";
+$lang['image_quality_40'] = "Very low";
+
+/* IIIF */
+$lang['systemconfig_api'] = "API";
+$lang["iiif_enable_option"] = "Enable IIIF support";
+$lang["iiif_disabled"] = "IIIF is not configured";
+

@@ -672,7 +672,7 @@ if('' != $tile_type)
         </script>
         <?php
         }
-
+	hook('beforedashtileadmin');
 	if(checkPermission_dashadmin())
 		{
         ?>
@@ -720,11 +720,11 @@ if('' != $tile_type)
 				<?php
 				}
 			?>
+            </div>
 		<?php 
         render_user_group_checkbox_select('specific_user_groups', $current_specific_user_groups, 'padding-left: 310px; display: none;');
 		}
         ?>
-    </div>
 	<div class="QuestionSubmit">
 		 <div class="Inline"><input name="Submit" type="submit" value="&nbsp;&nbsp;<?php echo $submittext;?>&nbsp;&nbsp;" /></div>
 		<div class="clearerleft"> </div>
@@ -803,7 +803,7 @@ if('' != $tile_type)
             jQuery('#previewdashtile').addClass('DoubleWidthDashTile');
             width = 515;
             }
-
+            
 		jQuery("#previewdashtile").load("<?php echo $previewurl; ?>?tltype=<?php echo urlencode($tile_type)?>&tlsize=" + tlsize + "&tlstyle="+prevstyle+"&tlwidth="+width+"&tlheight="+height+tile);
 	}
 

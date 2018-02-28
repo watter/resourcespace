@@ -81,7 +81,13 @@ elseif ($upload_then_edit)
 	# Clear the user template
 	clear_resource_data(0-$userref);
 	}
-	
+
+$modify_redirecturl=hook('modify_redirecturl');
+if($modify_redirecturl!==false)
+	{
+	$redirecturl=$modify_redirecturl;
+	}
+
 $uploadparams= array(
     'replace'                                => $replace,
     'alternative'                            => $alternative,
@@ -527,6 +533,11 @@ if ($_FILES)
 								notify_resource_change($alternative);
 								}
 								
+                            // Remove chunk tracking file as upload successful
+                            if(file_exists($plupload_processed_filepath))
+                                {
+                                unlink($plupload_processed_filepath);
+                                }
 			    	
 			    # Update disk usage
 			    update_disk_usage($alternative);

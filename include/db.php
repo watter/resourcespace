@@ -324,10 +324,11 @@ $querylog=array();
 # -----------LANGUAGES AND PLUGINS-------------------------------
 
 # Setup plugin configurations
+include_once "config_functions.php";
+include_once "plugin_functions.php";
+
 if ($use_plugins_manager)
 	{
-	include 'config_functions.php';
-	include "plugin_functions.php";
 	$legacy_plugins = $plugins; # Make a copy of plugins activated via config.php
 	# Check that manually (via config.php) activated plugins are included in the plugins table.
 	foreach($plugins as $plugin_name)
@@ -988,7 +989,7 @@ function CheckDBStruct($path,$verbose=false)
 					if ($sql.="") {$sql.=", ";}
 					$sql.=$col[0] . " " . str_replace("§",",",$col[1]);
 					if ($col[4]!="") {$sql.=" default " . $col[4];}
-					if ($col[3]=="PRI")
+                    if ($col[3]=="PRI")
 					{
 						if($hasPrimaryKey)
 						{
@@ -1038,10 +1039,11 @@ function CheckDBStruct($path,$verbose=false)
 
 				##########
 				# Copy needed resource_data into resource for search displays
-				if ($table=="resource"){
+				if ($table=="resource")
+                    {
 					$joins=get_resource_table_joins();
-					for ($m=0;$m<count($joins);$m++){
-						
+					for ($m=0;$m<count($joins);$m++)
+                        {
 						# Look for this column in the existing columns.	
 						$found=false;
 
@@ -1049,24 +1051,39 @@ function CheckDBStruct($path,$verbose=false)
 							{
 							if ("field".$joins[$m]==$existing[$n]["Field"]) {$found=true;}
 							}
+
 						if (!$found)
 							{
 							# Add this column.
 							$sql="alter table $table add column ";
 							$sql.="field".$joins[$m] . " VARCHAR(" . $resource_field_column_limit . ")";
 							sql_query($sql,false,-1,false);
-							$values=sql_query("select resource,value from resource_data where resource_type_field=$joins[$m]",false,-1,false);
-	
-							for($x = 0; $x < count($values); $x++)
-                                {
-                                $value    = substr(escape_check($values[$x]['value']), 0, $resource_field_column_limit);
-                                $resource = $values[$x]['resource'];
 
-                                sql_query("UPDATE resource SET field{$joins[$m]} = '{$value}' WHERE ref = {$resource}", false, -1, false);	
-                                }	
-						}
-					}	
-				}		
+                            $resources = sql_array("SELECT ref AS `value` FROM resource WHERE ref > 0");
+                            foreach($resources as $resource)
+                                {
+                                // Do not use permissions here as we want to sync all fields
+                                $resource_field_data       = get_resource_field_data($resource, false, false);
+                                $resource_field_data_index = array_search($joins[$m], array_column($resource_field_data, 'ref'));
+
+                                if(
+                                    $resource_field_data_index !== false
+                                    && trim($resource_field_data[$resource_field_data_index]["value"]) != ""
+                                )
+                                    {
+                                    $new_joins_field_value = $resource_field_data[$resource_field_data_index]["value"];
+                                    $truncated_value = truncate_join_field_value($new_joins_field_value);
+                                    $truncated_value_escaped = escape_check($truncated_value);
+
+                                    sql_query("
+                                        UPDATE resource
+                                           SET field{$joins[$m]} = '{$truncated_value_escaped}'
+                                         WHERE ref = '{$resource}'");
+                                    }
+                                }
+                            }
+                        }
+                    }
 				##########
 				
 				##########
@@ -1118,7 +1135,7 @@ function CheckDBStruct($path,$verbose=false)
 									// Checks added so that we don't trim off data if a varchar size has been increased manually or by a plugin. 
 									// - If column is of same type but smaller number, update
 									// - If target column is of type text, update
-									// - If target column is of type varchyar and currently int, update (e.g. the 'archive' column in collection_savedsearch moved from a single state to a multiple)
+									// - If target column is of type varchar and currently int, update (e.g. the 'archive' column in collection_savedsearch moved from a single state to a multiple)
 									
 									if	(
 										(count($matchbase)==3 && count($matchexisting)==3 && $matchbase[1] == $matchexisting[1] && $matchbase[2] > $matchexisting[2])
@@ -1127,7 +1144,7 @@ function CheckDBStruct($path,$verbose=false)
 										||
 										(strtoupper(substr($basecoltype,0,6))=="BIGINT" && strtoupper(substr($existingcoltype,0,3)=="INT"))
 										||
-										(strtoupper(substr($existingcoltype,0,3))=="INT" && (strtoupper(substr($existingcoltype,0,7))=="TINYINT" || strtoupper(substr($existingcoltype,0,8))=="SMALLINT"))
+										(strtoupper(substr($basecoltype,0,3))=="INT" && (strtoupper(substr($existingcoltype,0,7))=="TINYINT" || strtoupper(substr($existingcoltype,0,8))=="SMALLINT"))
 										||
 										(strtoupper(substr($basecoltype,0,7))=="VARCHAR" && strtoupper(substr($existingcoltype,0,3)=="INT"))
 									       )
@@ -2200,6 +2217,8 @@ function validate_user($user_select_sql, $getuserdata=true)
 */
 function strip_tags_and_attributes($html, array $tags = array(), array $attributes = array())
     {
+	global $permitted_html_tags, $permitted_html_attributes;
+	
     if(!is_string($html) || 0 === strlen($html))
         {
         return $html;
@@ -2213,37 +2232,8 @@ function strip_tags_and_attributes($html, array $tags = array(), array $attribut
     // (DOMDocument::saveHTML() returns a text string as a string wrapped in a <p> tag)
     $is_html = ($html != strip_tags($html));
 
-    $allowed_tags = array_merge(
-        array(
-            'html',
-            'body',
-            'div',
-            'span',
-            'h1',
-            'h2',
-            'h3',
-            'h4',
-            'h5',
-            'h6',
-            'p',
-            'br',
-            'em',
-            'strong',
-            'b',
-            'u',
-            'ol',
-            'ul',
-            'li',
-            'i',
-            'small',
-            'sub',
-            'ins',
-            'del',
-            'mark'
-        ),
-        $tags
-    );
-    $allowed_attributes = array_merge(array('id', 'class', 'style'), $attributes);
+    $allowed_tags = array_merge($permitted_html_tags, $tags);
+    $allowed_attributes = array_merge($permitted_html_attributes, $attributes);
 
     // Step 1 - Check DOM
     libxml_use_internal_errors(true);
