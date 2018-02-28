@@ -549,6 +549,7 @@ function config_file_input($name, $label, $current, $form_action, $width = 420)
             <input type="submit" name="delete_<?php echo $name; ?>" value="<?php echo $lang['action-delete']; ?>">
             <?php
             }
+            generateFormToken($name);
             ?>
         </form>
         <div class="clearerleft"></div>
@@ -1019,6 +1020,8 @@ function config_generate_AutoSaveConfigOption_function($post_url)
 
 function config_process_file_input(array $page_def, $file_location, $redirect_location)
     {
+    enforcePostRequest(false);
+
     global $baseurl, $storagedir, $storageurl, $banned_extensions;
 
     $file_server_location = $storagedir . '/' . $file_location;
