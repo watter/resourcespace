@@ -6663,6 +6663,8 @@ function isValidCSRFToken($token_data, $session_id)
 /**
 * Render the CSRF Token input tag
 * 
+* @param string $form_id The id/ name attribute of the form
+* 
 * @return void
 */
 function generateFormToken($form_id)
@@ -6674,6 +6676,24 @@ function generateFormToken($form_id)
     <input type="hidden" name="<?php echo htmlspecialchars($CSRF_token_identifier); ?>" value="<?php echo $token; ?>">
     <?php
     return;
+    }
+
+
+/**
+* Render the CSRF Token for AJAX use
+* 
+* @param string $form_id The id/ name attribute of the form or just the calling function for this type of request
+* 
+* @return string
+*/
+function generateAjaxToken($form_id)
+    {
+    global $CSRF_token_identifier, $usersession;
+
+    $identifier = htmlspecialchars($CSRF_token_identifier);
+    $token      = generateCSRFToken($usersession, $form_id);
+
+    return "{$identifier}: \"{$token}\"";
     }
 
 
