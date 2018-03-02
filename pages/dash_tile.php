@@ -24,7 +24,7 @@ $error=false;
  * Process Submitted Tile 
  */
 $submitdashtile=getvalescaped("submitdashtile",FALSE);
-if(enforcePostRequest(false) && $submitdashtile)
+if($submitdashtile && enforcePostRequest(false))
 	{
 	$buildurl = getvalescaped("url","");
     $tlsize   = ('double' === getvalescaped('tlsize', '') ? 'double' : '');
