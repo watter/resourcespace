@@ -43,7 +43,7 @@ $default_sort_direction="DESC";
 if (substr($order_by,0,5)=="field"){$default_sort_direction="ASC";}
 $sort=getval("sort",$default_sort_direction);
 
-if (getval("createblank","")!=""){
+if (getval("createblank","")!="" && enforcePostRequest(getval("ajax", false))){
     if ($ref==""){
         $ref=copy_resource(0-$userref);
     }
@@ -162,6 +162,7 @@ function check(filename) {
 </script>
 
 <form method="post" class="form" enctype="multipart/form-data" action="<?php echo $baseurl_short?>pages/upload.php">
+<?php generateFormToken("upload"); ?>
 <input type="hidden" name="ref" value="<?php echo htmlspecialchars($ref) ?>" />
 <input type="hidden" name="resource_type" value="<?php echo htmlspecialchars($resource_type) ?>" />
 <input type="hidden" name="archive" value="<?php echo htmlspecialchars($setarchive) ?>" />
