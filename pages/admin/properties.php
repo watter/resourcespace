@@ -114,7 +114,7 @@ if (substr($t[7],0,3)=="url")
     
 #handle posts
 
-if (array_key_exists("submit",$_POST))
+if (array_key_exists("submit",$_POST) && enforcePostRequest(false))
     {
 
     #Handle File Upload
@@ -319,6 +319,7 @@ if (substr($t[7],0,6)=="upload")
         }
     ?>
     <form enctype="multipart/form-data" method="post">
+    <?php generateFormToken("properties"); ?>
     <p>
     <input type="hidden" name="MAX_FILE_SIZE" value="200000">
     <input type="hidden" name="extension" value="<?php echo $extension?>">
@@ -331,8 +332,8 @@ else
     {
     ?>
     <form method="post" enctype="multipart/form-data">
-    <?php
-    #echo $t[7];
+    <?php generateFormToken("properties");
+
     $result=sql_query(str_replace($transfrom,$transto,$t[7]));
     if (count($result)==0) {exit($lang["nothing-to-display"] . "</div></body></html>");}
     $result=$result[0];
