@@ -326,6 +326,19 @@ $additional_title_pages=array(hook("additional_title_pages_array"));
 ?>
 <script src="<?php echo $baseurl?>/lib/js/Placeholders.min.js?css_reload_key=<?php echo $css_reload_key?>" type="text/javascript"></script>
 <?php
+
+if(isset($onload_message) && trim($onload_message) != "")
+    {
+    ?>
+    <script>
+    jQuery(document).ready(function()
+        {
+        styledalert(<?php echo $onload_message["title"] . "," . $onload_message["text"] ?>);
+        });
+    </script>
+    <?php
+    }
+
 if (getval("ajax","")=="") {
 	// don't show closing tags if we're in ajax mode
 	?>

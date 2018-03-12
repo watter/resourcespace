@@ -9,6 +9,7 @@ include "../../../include/resource_functions.php";
 function table_cell($data)
     {
     $return = "<table border='1'>";
+    unset($key);
     foreach ($data as $key => $value)
         {
         $return .= "<tr><td>$key</td><td>";

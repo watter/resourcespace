@@ -17,7 +17,7 @@ $plugin_page_heading = $lang['falcon_link_configuration'];
 
 // Build the $page_def array of descriptions of each configuration variable the plugin uses.
 $page_def[] = config_add_text_input('falcon_link_api_key',$lang['falcon_link_api_key']);
-$page_def[] = config_add_single_ftype_select('falcon_link_title_field',$lang["falcon_link_title_field"],420);
+$page_def[] = config_add_single_ftype_select('falcon_link_text_field',$lang["falcon_link_text_field"],420);
 $page_def[] = config_add_multi_ftype_select('falcon_link_tag_fields',$lang["falcon_link_tag_fields"],420);
 $page_def[] = config_add_single_ftype_select('falcon_link_url_field',$lang["falcon_link_url_field"],420);
 $page_def[] = config_add_multi_rtype_select('falcon_link_restypes', $lang['falcon_link_resource_types_to_include'],420);
