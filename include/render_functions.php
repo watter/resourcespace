@@ -1475,10 +1475,10 @@ function display_field($n, $field, $newtab=false,$modal=false)
   $name="field_" . $field["ref"];
   $value=$field["value"];
   $value=trim($value);
-
-  if (($field["omit_when_copying"] || strip_leading_comma($value) == "") && $use!=$ref)
+  if ($use != $ref && ($field["omit_when_copying"] || in_array($field["ref"], $locked_fields)))
     {
-    # Omit when copying, or there is no data for this field associated with the copied resource - return this field back to the value it was originally, instead of using the current value which has been fetched from the copied resource.
+    # Return this field value back to the original value, instead of using the value from the copied resource/metadata template
+    # This is triggered if field has the 'omit_when_copying' flag set or if the field value has been locked e.g. in upload_then_edit mode
     reset($original_fields);
     foreach ($original_fields as $original_field)
       {
@@ -2201,25 +2201,33 @@ function renderCallToActionTile($link)
 */
 function renderSocialMediaShareLinksForUrl($url)
     {
-    global $facebook_app_id;
+    global $facebook_app_id, $social_media_links;
 
     $url_encoded = urlencode($url);
 
-    if('' !== trim($facebook_app_id))
+    if('' !== trim($facebook_app_id) && in_array("facebook", $social_media_links))
         {
         ?>
         <!-- Facebook -->
         <a target="_blank" href="https://www.facebook.com/dialog/feed?app_id=<?php echo $facebook_app_id; ?>&link=<?php echo $url_encoded; ?>"><i class="fa fa-lg fa-facebook-official" aria-hidden="true"></i></a>
         <?php
         }
+
+    if (in_array("twitter", $social_media_links))
+        {
         ?>
-    
-    <!-- Twitter -->
-    <a target="_blank" href="https://twitter.com/?status=<?php echo $url_encoded; ?>"><i class="fa fa-lg fa-twitter-square" aria-hidden="true"></i></a>
-    
-    <!-- LinkedIn -->
-    <a target="_blank" href="https://www.linkedin.com/shareArticle?mini=true&url=<?php echo $url_encoded; ?>"><i class="fa fa-lg fa-linkedin-square" aria-hidden="true"></i></a>
-    <?php
+        <!-- Twitter -->
+        <a target="_blank" href="https://twitter.com/?status=<?php echo $url_encoded; ?>"><i class="fa fa-lg fa-twitter-square" aria-hidden="true"></i></a>
+        <?php
+        }
+
+    if (in_array("linkedin", $social_media_links))
+        {
+        ?>
+        <!-- LinkedIn -->
+        <a target="_blank" href="https://www.linkedin.com/shareArticle?mini=true&url=<?php echo $url_encoded; ?>"><i class="fa fa-lg fa-linkedin-square" aria-hidden="true"></i></a>
+        <?php
+        }
 
     return;
     }

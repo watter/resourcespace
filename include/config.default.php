@@ -541,7 +541,7 @@ $ffmpeg_preview_min_width=32;
 $ffmpeg_preview_min_height=18;
 $ffmpeg_preview_max_width=700;
 $ffmpeg_preview_max_height=394;
-$ffmpeg_preview_options="-f flv -ar 22050 -b 650k -ab 32k -ac 1";
+$ffmpeg_preview_options="-f flv -ar 22050 -b:v 650k -ab 32k -ac 1 -strict -2";
 
 # HLS SUPPORT
 # Option to generate HTTP Live Streaming (HLS) compatible previews separate sections with an m3u8 playlist to support adaptive bitrate streaming). 
@@ -3421,6 +3421,9 @@ $byte_prefix_mode_decimal=true;
 
 # Option to force users to select a resource type at upload
 $resource_type_force_selection=false;
+
+// Social media share buttons
+$social_media_links = array("facebook", "twitter", "linkedin");
 
 // Facebook App ID
 $facebook_app_id = '133361117324579'; # Standard ResourceSpace app

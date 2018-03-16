@@ -149,36 +149,40 @@ if($editing && !$editexternalurl)
                                 </select>
                                 <div class="clearerleft"> </div>
                             </div>
-                        <?php endif; #hook replaceemailaccessselector ?>
+                        <?php endif; #hook replaceemailaccessselector
                         
-                        <div class="Question">
-                            <label><?php echo $lang["expires"]?></label>
-                            <select name="expires" class="stdwidth">
-                            <?php 
-                            if($resource_share_expire_never) 
-                                { ?>
-                                <option value=""><?php echo $lang["never"]?></option><?php 
-                                } 
-                            for ($n=1;$n<=$resource_share_expire_days;$n++)
-                                {
-                                $date       = time() + (60*60*24*$n);
-                                $ymd_date   = date('Y-m-d', $date);
-                                $selected   = (substr(getvalescaped("editexpiration",""),0,10) == $ymd_date);
-                                $date_text  = nicedate($ymd_date,false,true);
-                                $option_class = '';
-								$day_date = date('D', $date);
-                                if (($day_date == "Sun") || ($day_date == "Sat"))
-                                    {
-                                    $option_class = 'optionWeekend';
-                                    }
-                                ?>
-                                <option class="<?php echo $option_class ?>" value="<?php echo $ymd_date ?>" <?php if($selected) echo "selected"; ?>><?php echo $date_text ?></option>
-                                <?php
-                                } ?>
-                            </select>
-                            <div class="clearerleft"> </div>
-                        </div>
-                        <?php 
+                        if(!hook('replaceemailexpiryselector'))
+                        	{
+                        	?>
+							<div class="Question">
+								<label><?php echo $lang["expires"]?></label>
+								<select name="expires" class="stdwidth">
+								<?php 
+								if($resource_share_expire_never) 
+									{ ?>
+									<option value=""><?php echo $lang["never"]?></option><?php 
+									} 
+								for ($n=1;$n<=$resource_share_expire_days;$n++)
+									{
+									$date       = time() + (60*60*24*$n);
+									$ymd_date   = date('Y-m-d', $date);
+									$selected   = (substr(getvalescaped("editexpiration",""),0,10) == $ymd_date);
+									$date_text  = nicedate($ymd_date,false,true);
+									$option_class = '';
+									$day_date = date('D', $date);
+									if (($day_date == "Sun") || ($day_date == "Sat"))
+										{
+										$option_class = 'optionWeekend';
+										}
+									?>
+									<option class="<?php echo $option_class ?>" value="<?php echo $ymd_date ?>" <?php if($selected) echo "selected"; ?>><?php echo $date_text ?></option>
+									<?php
+									} ?>
+								</select>
+								<div class="clearerleft"> </div>
+							</div>
+							<?php 
+                        	}
                         if (checkperm("x")) 
                         	{
 							# Allow the selection of a user group to inherit permissions from 
@@ -293,7 +297,15 @@ if($editing && !$editexternalurl)
                             <td><?php echo $lang["lastused"];     ?></td>
                             <td><?php echo $lang["expires"];      ?></td>
                             <td><?php echo $lang["access"];       ?></td>
-                            <td><?php echo $lang['social_media']; ?></td>
+                            <?php
+                            global $social_media_links;
+                            if (!empty($social_media_links))
+                                {
+                                ?>
+                                <td><?php echo $lang['social_media']; ?></td>
+                                <?php
+                                }
+                            ?>
                             <?php hook("additionalresourceexternalshareheader");?>
                             <td><div class="ListTools"><?php echo $lang["tools"]?></div></td>
                         </tr>
@@ -325,7 +337,14 @@ if($editing && !$editexternalurl)
                             <td><?php echo htmlspecialchars(nicedate($key["lastused"],true)); ?></td>
                             <td><?php echo htmlspecialchars($expires)                         ?></td>
                             <td><?php echo htmlspecialchars($access);                         ?></td>
-                            <td><?php renderSocialMediaShareLinksForUrl($url);                ?></td>
+                            <?php
+                            if (!empty($social_media_links))
+                                {
+                                ?>
+                                <td><?php renderSocialMediaShareLinksForUrl($url);                ?></td>
+                                <?php
+                                }
+                            ?>
                             <?php hook("additionalresourceexternalsharerecord");?>
                             <td>
                                 <div class="ListTools">

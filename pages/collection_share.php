@@ -175,35 +175,38 @@ include "../include/header.php";
 			</select>
 			<div class="clearerleft"> </div>
 			</div>
-			<?php endif; #hook replaceemailaccessselector ?>
+			<?php endif; #hook replaceemailaccessselector
 			
-			<div class="Question">
-			<label><?php echo $lang["expires"]?></label>
-			<select name="expires" class="stdwidth">
-			<?php 
-			global $collection_share_expire_days, $collection_share_expire_never;
-			if($collection_share_expire_never){?><option value=""><?php echo $lang["never"]?></option><?php }?>
-			<?php 
-			for ($n=1;$n<=$collection_share_expire_days;$n++)
+			if(!hook('replaceemailexpiryselector'))
 				{
-				$date = time()+(60*60*24*$n);
-				$d    = date("D",$date);
-				$option_class = '';
-				if (($d == "Sun") || ($d == "Sat"))
+				?>
+				<div class="Question">
+				<label><?php echo $lang["expires"]?></label>
+				<select name="expires" class="stdwidth">
+				<?php 
+				global $collection_share_expire_days, $collection_share_expire_never;
+				if($collection_share_expire_never){?><option value=""><?php echo $lang["never"]?></option><?php }?>
+				<?php 
+				for ($n=1;$n<=$collection_share_expire_days;$n++)
 					{
-					$option_class = 'optionWeekend';
-					} ?>
-				<option class="<?php echo $option_class ?>" value="<?php echo date("Y-m-d",$date)?>" <?php if(substr(getvalescaped("editexpiration",""),0,10)==date("Y-m-d",$date)){echo "selected";}?>><?php echo nicedate(date("Y-m-d",$date),false,true)?></option>
+					$date = time()+(60*60*24*$n);
+					$d    = date("D",$date);
+					$option_class = '';
+					if (($d == "Sun") || ($d == "Sat"))
+						{
+						$option_class = 'optionWeekend';
+						} ?>
+					<option class="<?php echo $option_class ?>" value="<?php echo date("Y-m-d",$date)?>" <?php if(substr(getvalescaped("editexpiration",""),0,10)==date("Y-m-d",$date)){echo "selected";}?>><?php echo nicedate(date("Y-m-d",$date),false,true)?></option>
+					<?php
+					}
+				?>
+				</select>
+				<div class="clearerleft"> </div>
+				</div>
 				<?php
 				}
-			?>
-			</select>
-			<div class="clearerleft"> </div>
-			</div>
 			
-			
-			
-			<?php if (checkperm("x")) {
+			if (checkperm("x")) {
 			# Allow the selection of a user group to inherit permissions from for this share (the default is to use the current user's user group).
 			?>
 			<div class="Question">
@@ -329,7 +332,15 @@ include "../include/header.php";
 			<td><?php echo $lang["lastused"];?></td>
 			<td><?php echo $lang["expires"];?></td>
 			<td><?php echo $lang["access"];?></td>
-			<td><?php echo $lang['social_media']; ?></td>
+			<?php
+			global $social_media_links;
+			if (!empty($social_media_links))
+				{
+				?>
+				<td><?php echo $lang['social_media']; ?></td>
+				<?php
+				}
+			?>
 			<?php hook("additionalcolexternalshareheader");?>
 			<td><div class="ListTools"><?php echo $lang["tools"]?></div></td>
 			</tr>
@@ -345,7 +356,14 @@ include "../include/header.php";
 				<td><?php echo htmlspecialchars(nicedate($keys[$n]["lastused"],true)); ?></td>
 				<td><?php echo htmlspecialchars(($keys[$n]["expires"]=="")?$lang["never"]:nicedate($keys[$n]["expires"],false)) ?></td>
 				<td><?php echo htmlspecialchars(($keys[$n]["access"]==-1)?"":$lang["access" . $keys[$n]["access"]]); ?></td>
-                <td><?php renderSocialMediaShareLinksForUrl(generateURL($baseurl, array('c' => $ref, 'k' => $keys[$n]['access_key']))); ?></td>
+				<?php
+				if (!empty($social_media_links))
+					{
+					?>
+            		<td><?php renderSocialMediaShareLinksForUrl(generateURL($baseurl, array('c' => $ref, 'k' => $keys[$n]['access_key']))); ?></td>
+					<?php
+					}
+				?>
 				<?php hook("additionalcolexternalsharerecord");?>
 				<td><div class="ListTools">
 				<a href="#" onClick="if (confirm('<?php echo $lang["confirmdeleteaccess"]?>')) {document.getElementById('deleteaccess').value='<?php echo htmlspecialchars($keys[$n]["access_key"]) ?>';document.getElementById('collectionform').submit(); return false;}"><?php echo LINK_CARET ?><?php echo $lang["action-delete"]?></a>
