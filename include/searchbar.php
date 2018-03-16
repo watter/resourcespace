@@ -204,6 +204,8 @@ $found_day="";if (isset($set_fields["day"])) {$found_day=$set_fields["day"];}
 	
 	<form id="simple_search_form" method="post" action="<?php echo $baseurl?>/pages/search.php" onSubmit="return CentralSpacePost(this,true);">
     <?php
+    generateFormToken("simple_search_form");
+
     if(!hook("replacesearchbox"))
         {
         ?>
