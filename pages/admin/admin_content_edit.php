@@ -286,7 +286,7 @@ jQuery('#checkhtml').click(function(e) {
 		var checktext = jQuery('#text').val();
 	}
 
-	jQuery.post('../tools/check_html.php', {'text': checktext}, function(response, status, xhr){
+	jQuery.get('../tools/check_html.php', {'text': checktext}, function(response, status, xhr){
 		CentralSpaceHideLoading();
 		jQuery('#submissionResponse').html(response);
 	});
