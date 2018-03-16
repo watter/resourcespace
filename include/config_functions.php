@@ -989,7 +989,8 @@ function config_generate_AutoSaveConfigOption_function($post_url)
             ajax: true,
             autosave: true,
             autosave_option_name: option_name,
-            autosave_option_value: option_value
+            autosave_option_value: option_value,
+            <?php echo generateAjaxToken($post_url); ?>
         };
 
         jQuery.post(post_url, post_data, function(response) {
@@ -1020,8 +1021,6 @@ function config_generate_AutoSaveConfigOption_function($post_url)
 
 function config_process_file_input(array $page_def, $file_location, $redirect_location)
     {
-    enforcePostRequest(false);
-
     global $baseurl, $storagedir, $storageurl, $banned_extensions;
 
     $file_server_location = $storagedir . '/' . $file_location;
@@ -1044,7 +1043,7 @@ function config_process_file_input(array $page_def, $file_location, $redirect_lo
         $config_name = $page_element[1];
 
         // DELETE
-        if(getval('delete_' . $config_name, '') !== '')
+        if(getval('delete_' . $config_name, '') !== '' && enforcePostRequest(false))
             {
             if(get_config_option(null, $config_name, $delete_filename))
                 {
@@ -1060,7 +1059,7 @@ function config_process_file_input(array $page_def, $file_location, $redirect_lo
                 }
             }
         // CLEAR
-        if(getval('clear_' . $config_name, '') !== '')
+        if(getval('clear_' . $config_name, '') !== '' && enforcePostRequest(false))
 			{
 			if(get_config_option(null, $config_name, $missing_file))
                 {
@@ -1075,7 +1074,7 @@ function config_process_file_input(array $page_def, $file_location, $redirect_lo
 			}
 
         // UPLOAD
-        if(getval('upload_' . $config_name, '') !== '')
+        if(getval('upload_' . $config_name, '') !== '' && enforcePostRequest(false))
             {
             if(isset($_FILES[$config_name]['tmp_name']) && is_uploaded_file($_FILES[$config_name]['tmp_name']))
                 {
