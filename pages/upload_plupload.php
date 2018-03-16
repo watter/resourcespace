@@ -239,7 +239,7 @@ if($send_collection_to_admin && $archive == -1 && getvalescaped('ajax' , 'false'
 	}
 
 global $php_path,$relate_on_upload,$enable_related_resources;
-if($relate_on_upload && $enable_related_resources && getval("uploaded_refs", "") != "")
+if($relate_on_upload && $enable_related_resources && getval("uploaded_refs", "") != "" && enforcePostRequest(getval("ajax", false)))
     {
     $resource_refs = getval("uploaded_refs", "");
     $valid_refs    = array();
@@ -998,7 +998,13 @@ var pluploadconfig = {
                             }
                         if($relate_on_upload && $enable_related_resources && getval("relateonupload","")==="yes"){?>
                             uploader.bind('UploadComplete', function(up, files) {
-                                jQuery.post("<?php echo $baseurl_short; ?>pages/upload_plupload.php",{uploaded_refs:resource_keys});
+                                jQuery.post(
+                                    "<?php echo $baseurl_short; ?>pages/upload_plupload.php",
+                                    {
+                                    uploaded_refs: resource_keys,
+                                    <?php echo generateAjaxToken("plupload-UploadComplete"); ?>
+                                    }
+                                );
                                 processed_resource_keys=resource_keys;
                             });                           
                         <?php }
