@@ -21,6 +21,8 @@ $page_def[] = config_add_single_ftype_select('falcon_link_text_field',$lang["fal
 $page_def[] = config_add_multi_ftype_select('falcon_link_tag_fields',$lang["falcon_link_tag_fields"],420);
 $page_def[] = config_add_single_ftype_select('falcon_link_url_field',$lang["falcon_link_url_field"],420);
 $page_def[] = config_add_multi_rtype_select('falcon_link_restypes', $lang['falcon_link_resource_types_to_include'],420);
+$page_def[] = config_add_text_input('falcon_link_filter',$lang['falcon_link_filter']);
+$page_def[] = config_add_multi_group_select('falcon_link_usergroups', $lang['falcon_link_usergroups'],420);
 
 // Do the page generation ritual -- don't change this section.
 $upload_status = config_gen_setup_post($page_def, $plugin_name);

@@ -25,11 +25,10 @@ if($falcon_link_url_field > 0)
 	}
 
 if (trim($falcon_link_api_key) == "" || count($falcon_link_restypes) < 1)
-		{
+	{
         $linkadd = checkperm('a') ? array("<a href='$baseurl/plugins/falcon_link/pages/setup.php'>","</a>") : array("","");
         echo sprintf($lang["falcon_link_notconfigured"] . "%s$baseurl/plugins/falcon_link/pages/setup.php$s",$linkadd);
         }
-        
 
 if (getval("save","") != "")
     {
@@ -46,9 +45,10 @@ if (getval("save","") != "")
         exit("ERROR - FILE DOES NOT EXIST");
         }
     
-    $resource_url       = str_replace($baseurl_short,"/",$baseurl . get_resource_path($ref,false,'',false,$resource['file_extension']) . "&k=" . $key);
-    $filename           = get_download_filename($ref, '', -1, $resource['file_extension']);
     $key                = generate_resource_access_key($ref,$userref,0,0,$username . 'user@falcon.io');
+    $resource_url       = str_replace($baseurl_short,"/",get_resource_path($ref,false,'',false,$resource['file_extension']) . "&k=" . $key);
+
+    $filename           = get_download_filename($ref, '', -1, $resource['file_extension']);
     
     $falcon_query_params = array(
     'apikey'    => $falcon_link_api_key
@@ -70,25 +70,30 @@ if (getval("save","") != "")
     
     //exit($falcon_post_params);
 
-    $create_url = generateURL($falcon_base_url . "/publish/publishing/templates", $falcon_query_params);
+    $create_url = generateURL($falcon_base_url . "/publish/publishing/template", $falcon_query_params);
     
     $curl = curl_init($create_url);
     curl_setopt($curl, CURLOPT_HTTPHEADER, array("Content-Type: application/json;charset=utf-8"));
     curl_setopt($curl, CURLOPT_POST, 1);
     curl_setopt($curl, CURLOPT_POSTFIELDS,$falcon_post_params);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0 );
+    //curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0 );
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1 );
     curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2 );
     
     $curl_response  = curl_exec($curl);
     $curl_info      = curl_getinfo($curl);
    
-    if ($curl_info['http_code'] != 200)
+    if ($curl_info['http_code'] != 201)
         {
-        exit("ERROR: -<br />" . print_r($curl_info));
+        exit("ERROR: -<br />" . print_r($curl_info) . "RESPONSE: " . print_r($curl_response));
         }    
         
     $response = json_decode($curl_response, true );
+
+    $falconid = $response['id'];
+    $falcon_template_path = "https://app.falcon.io/#/publish/content-pool/card/preview/stock/" . $falconid;
+    update_field($ref,$falcon_link_url_field,$falcon_template_path);
+
     exit("COMPLETE: -<br />" . print_r($response));
     
     // If ok, update resource with Falcon Content Pool ref
