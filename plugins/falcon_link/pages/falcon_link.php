@@ -5,13 +5,16 @@ include "../../../include/authenticate.php";
 include_once "../../../include/search_functions.php";
 include_once "../../../include/resource_functions.php";
 include_once "../../../include/collections_functions.php";
+include_once "../../../include/render_functions.php";
 include_once "../include/falcon_link_functions.php";
 
 $ref        = getval("resource",0,true);
 $collection = getval("collection",0,true);
-$action     = getval("action","publish");
+$action     = getval("falcon_action","publish");
 $saveform   = getval("save","") != "";
 $published  = array();
+$publishedresources = 0;
+$errormessages = array();
 
 // Check access
 if($ref != 0)
@@ -41,40 +44,51 @@ if ($access != 0 || !in_array($usergroup, $falcon_link_usergroups))
 	exit($lang["falcon_link_access_denied"]);
     }
 
-/* 
-if($falcon_link_url_field > 0)
-	{
-	$falcon_url = get_data_by_field($resource, $falcon_link_url_field);
-	}
-*/
-
 if (trim($falcon_link_api_key) == "" || count($falcon_link_restypes) < 1)
 	{
     $linkadd = checkperm('a') ? array("<a href='$baseurl/plugins/falcon_link/pages/setup.php'>","</a>") : array("","");
     echo sprintf($lang["falcon_link_notconfigured"] . "%s$baseurl/plugins/falcon_link/pages/setup.php%s",$linkadd);
     }
 
+foreach($resources as $resource)
+	   {
+	   $resid = $resource["ref"];
+	   $falconid = get_data_by_field($resid,$falcon_link_id_field);
+	   if(trim($falconid) != "")
+		    {
+		    $published[$resid] = $falconid;
+			$publishedresources++;
+	        }
+	   else
+			{
+			$results[$resid] = $lang["falcon_link_resource_not_published"];
+			
+			// Check that files actually exists
+			$resourcedata = get_resource_data($resid);
+			$check = get_resource_path($resid,true,'',false,$resourcedata['file_extension']);
+			if(!file_exists($check))
+				{
+				$results[$resid] .= " (" . $lang["resourcenotfound"] . ")";
+				}
+			}
+	   }
+        	
 if ($saveform)
     {
     if(strtolower($action) == "publish")
         {
-        $template_text      = getvalescaped("template_text","");
-        $template_tags      = getvalescaped("template_tags","");
-            
+		// Get posted values when publishing individual resources as we can override
+		$template_text      = getvalescaped("template_text","");
+		$template_tags      = getvalescaped("template_tags","");
         $success = falcon_link_publish($resources,$template_text,$template_tags);
-        // If ok, update resource with Falcon Content Pool ref
-        // Redirect to resource view/collection search page with message to advise of success
-        if($success["success"])
+		if($success["success"])
             {
-            $onload_message = array("title" => $lang["falcon_link_log_share"],"text" => $lang["falcon_link_publish_success"]);
-            ?>
-            <script>
-                jQuery(document).ready(function()
-                    {
-                    styledAlert('<?php echo $onload_message["title"] . "','" . $onload_message["text"] ?>',true);
-                    });
-            </script>
-            <?php
+            //$onload_message = array("title" => $lang["falcon_link_log_share"],"text" => $lang["falcon_link_publish_success"]);
+			$message = $lang["falcon_link_publish_success"];
+			foreach($success["results"] as $resid => $resresult)
+				{
+				$results[$resid] = $resresult;
+				}
             }
         }
     elseif(strtolower($action) == "archive")
@@ -83,123 +97,165 @@ if ($saveform)
         // Redirect to resource view/collection search page with message to advise of success
         if($success["success"])
             {
-            $onload_message = array("title" => $lang["falcon_link_archived_success"],"text" => $lang["falcon_link_archived_success"]);
-            
-            }
+            //$onload_message = array("title" => $lang["falcon_link_archived"],"text" => $lang["falcon_link_archived_success"]);            
+            $message = $lang["falcon_link_archived_success"];
+			}
+			
+		foreach($success["results"] as $resid => $resresult)
+				{
+				$results[$resid] = $resresult;
+				}
         }
-    if(!$success["success"])
-        {
-        if(count($success["errors"]) > 0)
-            {
-            $onload_message = array("title" => $lang["error"],"text" => $lang["falcon_link_error_falcon_api"] . ":-<br />" . implode("<br />" , $success["errors"]));
-            }
-        }
-    }
-elseif($collection == 0 && $ref !=0)
-    {
-    $template_text  = get_data_by_field($ref,$falcon_link_text_field);
     
-    $template_tags  = "";
-    foreach ($falcon_link_tag_fields as $falcon_link_tag_field)
-        {
-        $resource_keywords  =  get_data_by_field($ref,$falcon_link_tag_field);
-        $template_tags     .=  ($template_tags != "" ? "," : "") . $resource_keywords;
-        }
+	if(count($success["errors"]) > 0)
+		{
+		//$onload_message = array("title" => $lang["error"],"text" => $lang["falcon_link_error_falcon_api"] . ":-<br />" . implode("<br />" , $success["errors"]));
+		$errormessages[] = $lang["falcon_link_error_falcon_api"] . ":-<br />" . implode("<br />" , $success["errors"]);
+		}
     }
 
 include "../../../include/header.php";
+
+if($collection==0)
+	{
+	echo "<a href='" . $baseurl_short . "pages/view.php?ref=" . $resid . "' onClick='return CentralSpaceLoad(this,true);'>" . LINK_CARET_BACK . $lang["backtoresourceview"] . "</a></p>";
+	}
+else
+	{
+	echo "<a href='" . $baseurl_short . "?c=" . $collection . "' onClick='return CentralSpaceLoad(this,true);'>" . LINK_CARET_BACK . $lang["view_all_resources"] . "</a></p>";		
+	}
 ?>
+
 
 <div class="BasicsBox"> 
     <h1><?php echo ($action == "publish") ? $lang["falcon_link_publish"] : $lang["falcon_link_archive"] ?></h1>
 
 
 <?php
-
-if(!$saveform && $action == "publish")
-    {
-    foreach($resources as $resource)
-        { 
-        $falconurl = get_data_by_field($resource["ref"],$falcon_link_url_field);
-        if(trim($falconurl) != "")
-            {
-            $published[$resource["ref"]] = $falconurl;
-            }
-        }
-        
-    if (count($published) > 0)
-        {
-        if($collection == 0)
-            {
-            echo "</p><div class=\"FormIncorrect\"><p><br>" . htmlspecialchars($lang["falcon_link_already_published"]) . "</p></div>";
-            }
-        else
-            {
-            echo "</p><div class=\".PageInformal\"><p><br>" . htmlspecialchars($lang["falcon_link_resources_already_published"]) . implode(",",$published) . "</p></div>";                
-            }
-        } 
-    }
-elseif($action == "archive")
-    {?>
-    <div class="Question">
-        <p> 
-        <?php echo $lang["falcon_link_existingurl"] . $falconurl . "<p>";
-         if($collection == 0)
-                {
-                echo "</p><div class=\"FormIncorrect\"><p><br>" . htmlspecialchars($lang["falcon_link_already_published"]) . "</p></div>";
-                }
-            else
-                {
-                echo "</p><div class=\".PageInformal\"><p><br>" . htmlspecialchars($lang["falcon_link_resources_already_published"]) . implode(",",$published) . "</p></div>";                
-                }?>         
-        </p>
-    </div>
-    <?php
-    }?>
-
-    
-<form action="<?php echo $baseurl ?>/plugins/falcon_link/pages/falcon_link.php" method="post">
-
-    <?php
-    if($collection != 0)
-        {?>
-        <input type="hidden" name="collection" value="<?php echo htmlspecialchars($collection); ?>"
-        <?php
-        foreach($resources as $resource)
-            {
-            // Show a row for each resource to publish    
-            $falconurl = get_data_by_field($resource["ref"],$falcon_link_url_field);
-            if(trim($falconurl) != "")
-                {
-                $published[] = $resource["ref"];
-                }
-            }
-        }
-    else
-        {?>
-        <input type="hidden" name="resource" value="<?php echo htmlspecialchars($ref); ?>">
-        <div class="Question" >
-            <label for="template_text"><?php echo htmlspecialchars($lang["falcon_link_template_description"]) ?></label>
-            <textarea class="stdwidth" rows="6" columns="50" id="template_text" name="template_text"><?php echo htmlspecialchars($template_text); ?></textarea>
-            <br />
-        </div>
-        <div class="Question" >
-            <label for="template_tags"><?php echo htmlspecialchars($lang["falcon_link_template_tags"]) ?></label>
-            <textarea class="stdwidth" rows="6" columns="50" id="template_tags" name="template_tags"><?php echo htmlspecialchars($template_tags); ?></textarea>
-            <br />
-        </div>
-        <?php
-        }?>
-            
-	<div class="QuestionSubmit">
-        <label for="submit"></label>
-        <input type="submit" name="save" value="<?php echo $lang["falcon_link_button_text"]; ?>" onClick="return CentralSpacePost(this,true);"/>
-        <div class="clearerleft" ></div>
-   </div>
-    
-   
-</form>
+if($publishedresources > 0 && $action == "publish" && !$saveform)
+	{
+	$errormessages[] = $lang["falcon_link_resources_already_published"];
+	}
 	
+if(count($errormessages) > 0)
+	{
+	//echo "</p><div class='PageInformal'><p><br>" . htmlspecialchars($lang["falcon_link_resources_already_published"]) . "</p></div>";
+	echo "</p><div class='PageInformal'><p><br>" . implode("<br />",$errormessages) . "</p></div>"; 
+	}
+	
+if(isset($message))
+	{
+	echo "</p><div class='PageInformal'><p><br>" . $message . "</p></div>"; 
+	}
+
+echo "<div class='Listview'>";
+echo "<table class='ListviewStyle'>";
+echo "<tr class='ListviewTitleStyle'><td></td>";
+if($action=="publish" && $collection != 0 && !$saveform)
+	{
+	// Show the desciption and tag headers if publishing a collection
+	echo "<td>" . $lang["falcon_link_template_description"]	. "</td>";
+	echo "<td>" . $lang["falcon_link_template_tags"]	. "</td>";
+	}
+echo "<td>" . $lang["status"].  "</td>";
+echo "</tr>";
+foreach($resources as $resource)
+	{
+	$resid = $resource["ref"];
+	$imagedata = get_resource_data($resid);
+	$img_url = get_resource_path($resid,false,"col");
+	echo "<tr>";
+	echo "<td>";
+	render_resource_image($imagedata, $img_url,"col");
+	echo "</td>";	
+	$template_text  = get_data_by_field($resid,$falcon_link_text_field);
+	$template_tags  = "";
+	foreach ($falcon_link_tag_fields as $falcon_link_tag_field)
+		{
+		$resource_keywords  =  get_data_by_field($resid,$falcon_link_tag_field);
+		$template_tags     .=  ($template_tags != "" ? "," : "") . $resource_keywords;
+		}
+	// Show the desciption and tags if publishing a collection
+	if($action=="publish" && $collection != 0 && !$saveform)
+		{
+		echo "<td>" . htmlspecialchars($template_text) . "</td>";	
+		echo "<td>" . htmlspecialchars($template_tags) . "</td>";
+		}
+	
+	echo "<td>";
+	
+	if(isset($results[$resid]))
+		{
+		echo htmlspecialchars($results[$resid]);	
+		}
+	elseif(isset($published[$resid]))
+		{
+		$falconurl=str_replace("[id]",$published[$resid],$falcon_link_template_url);
+		echo $lang["falcon_link_already_published"] . " <br />(<a href='" . $falconurl . "' target='_blank' title='" . $lang["falcon_link_view_in_falcon"] ."'>" . htmlspecialchars($published[$resid]) . "</a>)";
+		}
+	
+	echo "</td>";
+	echo "</tr>";
+	}
+
+echo "</table>";
+echo "</div><!-- End of Listview -->";
+
+
+if(!$saveform)
+	{
+	?>
+	
+		
+	<form action="<?php echo $baseurl ?>/plugins/falcon_link/pages/falcon_link.php" id="falcon_link_form" method="post" onSubmit="return CentralSpacePost(this,true);" >
+	
+		<?php
+		if($action == "publish")
+			{
+			if($collection == 0)
+				{?>
+				<div class="Question" >
+					<label for="template_text"><?php echo htmlspecialchars($lang["falcon_link_template_description"]) ?></label>
+					<textarea class="stdwidth" rows="6" columns="50" id="template_text" name="template_text"><?php echo htmlspecialchars($template_text); ?></textarea>
+					<br />
+				</div>
+				<div class="Question" >
+					<label for="template_tags"><?php echo htmlspecialchars($lang["falcon_link_template_tags"]) ?></label>
+					<textarea class="stdwidth" rows="6" columns="50" id="template_tags" name="template_tags"><?php echo htmlspecialchars($template_tags); ?></textarea>
+					<br />
+				</div>
+				<?php
+				}?>
+			<div class="QuestionSubmit">			
+				<input type="hidden" name="falcon_action" value="publish">
+				<label for="submit"></label>
+				<input type="submit" name="save" value="<?php echo htmlspecialchars($lang["falcon_link_publish_button_text"]); ?>" />
+				<div class="clearerleft" ></div>
+			</div>
+			<?php
+			}
+		else
+			{
+			?>
+			<div class="QuestionSubmit">
+				<input type="hidden" name="falcon_action" value="archive">
+				<label for="submit"></label>
+				<input type="submit" name="save" value="<?php echo htmlspecialchars($lang["falcon_link_archive_button_text"]);?>" />
+				<div class="clearerleft" ></div>
+			</div>
+			<?php
+			}?>
+		
+		<input type="hidden" name="collection" value="<?php echo htmlspecialchars($collection); ?>" />
+		<input type="hidden" name="resource" value="<?php echo htmlspecialchars($ref); ?>">
+		<input type="hidden" name="save" value="true">
+		
+	   
+	</form>
+	<?php
+	}
+	?>
+		
 </div><!-- End of BasicsBox -->
 	
 <?php
