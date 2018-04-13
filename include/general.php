@@ -6674,10 +6674,19 @@ function generateCSRFToken($session_id, $form_id)
 /**
 * Checks if CSRF Token is valid
 * 
-* @return boolean  Returns TRUE if token has been decrypted, FALSE otherwise
+* @uses rsDecrypt()
+* 
+* @return boolean  Returns TRUE if token has been decrypted or CSRF is not enabled, FALSE otherwise
 */
 function isValidCSRFToken($token_data, $session_id)
     {
+    global $CSRF_enabled;
+
+    if(!$CSRF_enabled)
+        {
+        return true;
+        }
+
     if($token_data === "")
         {
         return false;
@@ -6704,13 +6713,20 @@ function isValidCSRFToken($token_data, $session_id)
 /**
 * Render the CSRF Token input tag
 * 
+* @uses generateCSRFToken()
+* 
 * @param string $form_id The id/ name attribute of the form
 * 
 * @return void
 */
 function generateFormToken($form_id)
     {
-    global $CSRF_token_identifier, $usersession;
+    global $CSRF_enabled, $CSRF_token_identifier, $usersession;
+
+    if(!$CSRF_enabled)
+        {
+        return;
+        }
 
     $token = generateCSRFToken($usersession, $form_id);
     ?>
@@ -6723,13 +6739,20 @@ function generateFormToken($form_id)
 /**
 * Render the CSRF Token for AJAX use
 * 
+* @uses generateCSRFToken()
+* 
 * @param string $form_id The id/ name attribute of the form or just the calling function for this type of request
 * 
 * @return string
 */
 function generateAjaxToken($form_id)
     {
-    global $CSRF_token_identifier, $usersession;
+    global $CSRF_enabled, $CSRF_token_identifier, $usersession;
+
+    if(!$CSRF_enabled)
+        {
+        return;
+        }
 
     $identifier = htmlspecialchars($CSRF_token_identifier);
     $token      = generateCSRFToken($usersession, $form_id);

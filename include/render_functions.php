@@ -1016,7 +1016,7 @@ function render_actions(array $collection_data, $top_actions = true, $two_line =
                             ajax: true,
                             dropdown_actions: true,
                             delete: <?php echo urlencode($collection_data['ref']); ?>,
-                            <?php echo generateAjaxToken("delete_collection"); ?>,
+                            <?php echo generateAjaxToken("delete_collection"); ?>
                         };
 
                         jQuery.post('<?php echo $baseurl; ?>/pages/collection_manage.php', post_data, function(response) {
@@ -1103,7 +1103,7 @@ function render_actions(array $collection_data, $top_actions = true, $two_line =
                                 name: <?php echo json_encode($collection_data["name"]); ?>,
                                 public: '<?php echo $collection_data["public"]; ?>',
                                 deleteall: 'on',
-                                <?php echo generateAjaxToken("delete_all_in_collection"); ?>,
+                                <?php echo generateAjaxToken("delete_all_in_collection"); ?>
                             };
 
                             jQuery.post('<?php echo $baseurl; ?>/pages/collection_edit.php?ajax=true', post_data, function()

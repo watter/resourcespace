@@ -1207,7 +1207,7 @@ if($attach_alternatives_found_to_resources)
     // Use multipart_params to send additional data to upload_plupload.php rather 
     // than use the query strings in the URL
     multipart_params: {
-        "<?php echo $CSRF_token_identifier; ?>": "<?php echo generateCSRFToken($usersession, 'upload_plupload'); ?>"
+        <?php echo generateAjaxToken("upload_plupload"); ?>
     }
 }; // End of pluploader config
                 
