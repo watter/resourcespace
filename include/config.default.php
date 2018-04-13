@@ -3438,3 +3438,13 @@ $upload_alternatives_suffix = '';
 // Run pages/tools/xfer_srambled.php to move the files, but any ommitted should be detected by get_resource_path if this is set.
 $migrating_scrambled = false;
 // $scramble_key_old = "";
+
+##################################################
+############### Cross-Site Request Forgery (CSRF):
+##################################################
+$CSRF_enabled          = false;
+$CSRF_token_identifier = "CSRFToken";
+$CSRF_no_redirects     = array();
+$CORS_whitelist        = array();
+##################################################
+##################################################
