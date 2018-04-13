@@ -26,7 +26,8 @@ $modal=(getval("modal","")=="true");
 $single=getval("single","") != "" || getval("forcesingle","") != "";
 $disablenavlinks=getval("disablenav","")=="true";
 $uploader = getvalescaped("uploader","");
-$collection     = getvalescaped('collection', '', true);
+$collection = getvalescaped('collection', '', true);
+$resetform = (getval("resetform", false) !== false);
 $ajax = filter_var(getval("ajax", false), FILTER_VALIDATE_BOOLEAN);
 $archive=getvalescaped("archive",0,true); // This is the archive state for searching, NOT the archive state to be set from the form POST which we get later
 $autorotate = getval("autorotate","");
@@ -85,6 +86,13 @@ if ($upload_review_mode)
         {
         redirect("pages/search.php?search=!last1000");
         }
+    }
+
+// Reset form (step 1 in upload) should clear all form data, including user template. The desired intention of the user is to clear it and 
+// have no old metadata values.
+if($resetform && $ref < 0 && !$upload_review_mode)
+    {
+    clear_resource_data($ref);
     }
 
 // Ability to avoid editing conflicts by checking checksums.
@@ -354,7 +362,7 @@ if(($embedded_data_user_select && getval("exif_option","")=="custom") || isset($
 #           PERFORM SAVE
 # -----------------------------------
 
-if ((getval("autosave","")!="") || (getval("tweak","")=="" && getval("submitted","")!="" && getval("resetform","")=="" && getval("copyfrom","")==""))
+if ((getval("autosave","")!="") || (getval("tweak","")=="" && getval("submitted","")!="" && !$resetform && getval("copyfrom","")==""))
     {
     hook("editbeforesave"); 
     
@@ -623,7 +631,7 @@ if (getval("tweak","")!="" && !$resource_file_readonly && enforcePostRequest($aj
       case "restore":
 		delete_previews($resource);
         sql_query("update resource set has_image=0, preview_attempts=0 WHERE ref='" . $ref . "'");
-        if ($enable_thumbnail_creation_on_upload)
+        if ($enable_thumbnail_creation_on_upload && !(isset($preview_generate_max_file_size) && $resource["file_size"] > $preview_generate_max_file_size))        
             {
             create_previews($ref,false,$resource["file_extension"],false,false,-1,true);
             refresh_collection_frame();
@@ -631,6 +639,7 @@ if (getval("tweak","")!="" && !$resource_file_readonly && enforcePostRequest($aj
         else
             {
             sql_query("update resource set preview_attempts=0, has_image=0 where ref='$ref'");
+            $onload_message["text"] = $lang["recreatepreviews_pending"];
             }
         break;
       }
@@ -886,37 +895,47 @@ function EditNav() # Create a function so this can be repeated at the end of the
   }
   
 function SaveAndClearButtons($extraclass="")
-   { 
-   global $lang,$multiple,$ref,$clearbutton_on_edit,$upload_review_mode;
-   ?>
-   <div class="QuestionSubmit <?php echo $extraclass ?>">
-   <?php
-   if($clearbutton_on_edit)
-      { 
-      ?>
-      <input name="resetform" class="resetform" type="submit" value="<?php echo $lang["clearbutton"]?>" />&nbsp;
-      <?php
-      } ?>
-    <input <?php if ($multiple) { ?>onclick="return confirm('<?php echo $lang["confirmeditall"]?>');"<?php } ?> name="save" class="editsave" type="submit" value="&nbsp;&nbsp;<?php echo ($ref>0)?($upload_review_mode?$lang["saveandnext"]:$lang["save"]):$lang["next"]?>&nbsp;&nbsp;" />
+    {
+    global $lang, $multiple, $ref, $clearbutton_on_edit, $upload_review_mode, $resource, $data_only_resource_types;
+
+    $save_btn_value = ($ref > 0 ? ($upload_review_mode ? $lang["saveandnext"] : $lang["save"]) : $lang["next"]);
+    if($ref < 0 && in_array($resource['resource_type'], $data_only_resource_types))
+        {
+        $save_btn_value = $lang['create'];
+        }
+    ?>
+    <div class="QuestionSubmit <?php echo $extraclass ?>">
     <?php
-    if ($upload_review_mode)
+    if($clearbutton_on_edit)
+        { 
+        ?>
+        <input name="resetform" class="resetform" type="submit" value="<?php echo $lang["clearbutton"]?>" />&nbsp;
+        <?php
+        }
+        ?>
+        <input <?php if ($multiple) { ?>onclick="return confirm('<?php echo $lang["confirmeditall"]?>');"<?php } ?>
+               name="save"
+               class="editsave"
+               type="submit"
+               value="&nbsp;&nbsp;<?php echo $save_btn_value; ?>&nbsp;&nbsp;" />
+    <?php
+    if($upload_review_mode)
         {
         ?>&nbsp;<input name="save_auto_next" class="editsave save_auto_next" type="submit" value="&nbsp;&nbsp;<?php echo $lang["save_and_auto"] ?>&nbsp;&nbsp;" />
         <?php
-        }?>
-    <br /><br />
-    
-   <div class="clearerleft"> </div>
-   </div>
-   <?php 
-   }
-
-?>
+        }
+        ?>
+        <br /><br />
+        <div class="clearerleft"> </div>
+    </div>
+    <?php 
+    }
+    ?>
 </script>
 
 <?php
 
-if(0 > $ref)
+if($ref < 0)
     {
     // Include upload_params in form action url
     if(in_array($resource['resource_type'], $data_only_resource_types))
@@ -1178,16 +1197,11 @@ if(!$is_template && $show_required_field_label)
     }
 
     $save_btn_value = $lang['next'];
-    if(0 > $ref && in_array($resource['resource_type'], $data_only_resource_types))
+    if($ref < 0 && in_array($resource['resource_type'], $data_only_resource_types))
         {
         $save_btn_value = $lang['create'];
         }
-if ($single)
-    {
-    ?>
-    <input name="save"  class="editsave" type="submit" value="&nbsp;&nbsp;<?php echo $lang["noupload"] ; ?>&nbsp;&nbsp;" onClick="jQuery('#noupload').val('true');return <?php echo ($modal?"Modal":"CentralSpace") ?>Post(this,true);" />&nbsp;&nbsp;
-    <input type=hidden id="noupload" name="noupload" value=""><?php
-    }?>
+        ?>
 <input name="save" class="editsave" type="submit" value="&nbsp;&nbsp;<?php echo $save_btn_value; ?>&nbsp;&nbsp;" /><br />
 <div class="clearerleft"> </div>
 </div>
@@ -1299,7 +1313,7 @@ else
 
 $lastrt=-1;
 
-if(isset($metadata_template_resource_type) && !$multiple)
+if(isset($metadata_template_resource_type) && !$multiple && ($ref < 0 || $upload_review_mode))
     {
     // Show metadata templates here
     $metadatatemplate = getvalescaped(
@@ -1437,16 +1451,12 @@ if (getval("copyfrom","")!="")
     }
   }
 
-if(isset($metadata_template_resource_type)  && !$multiple && $metadatatemplate != 0)
+if(($ref < 0 || $upload_review_mode) && isset($metadata_template_resource_type)  && !$multiple && $metadatatemplate != 0)
     {
     $use             = $metadatatemplate;
     $original_fields = get_resource_field_data($ref, $multiple, true, -1, '', $tabs_on_edit);
     $original_nodes  = get_resource_nodes($ref);
-
-    if($ref < 0 || $upload_review_mode)
-        {
-        copyAllDataToResource($use, $ref);
-        }
+    copyAllDataToResource($use, $ref);
     }
 
 # Load resource data
@@ -1461,7 +1471,7 @@ if ($lockable_fields && count($locked_fields) > 0 && $lastedited > 0)
         }
 
 # if this is a metadata template, set the metadata template title field at the top
-if (isset($metadata_template_resource_type)&&(isset($metadata_template_title_field)) && $resource["resource_type"]==$metadata_template_resource_type){
+if (($ref < 0 || $upload_review_mode) && isset($metadata_template_resource_type)&&(isset($metadata_template_title_field)) && $resource["resource_type"]==$metadata_template_resource_type){
     # recreate fields array, first with metadata template field
   $x=0;
   for ($n=0;$n<count($fields);$n++){

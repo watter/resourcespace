@@ -112,8 +112,6 @@ function save_resource_data($ref,$multi,$autosave_field="")
 	
 	for ($n=0;$n<count($fields);$n++)
 		{
-        debug("save_resource_data(): Checking nodes to add/ remove for field {$fields[$n]['ref']} - {$fields[$n]['title']}");
-
         if(!(
             checkperm('F' . $fields[$n]['ref'])
             || (checkperm("F*") && !checkperm('F-' . $fields[$n]['ref']))
@@ -128,6 +126,8 @@ function save_resource_data($ref,$multi,$autosave_field="")
             // Fixed list  fields use node IDs directly
             if(in_array($fields[$n]['type'], $FIXED_LIST_FIELD_TYPES))
                 {
+                debug("save_resource_data(): Checking nodes to add/ remove for field {$fields[$n]['ref']} - {$fields[$n]['title']}");
+
                 $val = '';
 
                 // Get currently selected nodes for this field 
@@ -1707,8 +1707,8 @@ function update_field($resource, $field, $value, array &$errors = array())
                     # Not a translated string, return as-is
                     if (substr($fieldoptiontranslations[$n],2,1)!=":" && substr($fieldoptiontranslations[$n],5,1)!=":" && substr($fieldoptiontranslations[$n],0,1)!=":")
                         {
-                        $currentoptions[]=trim($fieldoption);
-                        debug("update_field: current field option: '" . $fieldoption . "'<br />");
+                        $currentoptions[]=trim($fieldoption['name']);
+                        debug("update_field: current field option: '" . $fieldoption['name'] . "'<br />");
                         }
                     else
                         {
@@ -2110,6 +2110,7 @@ function get_resource_ref_range($lower,$higher)
 	
 function copy_resource($from,$resource_type=-1)
 	{
+    debug("copy_resource: copy_resource(\$from = {$from}, \$resource_type = {$resource_type})");
 	# Create a new resource, copying all data from the resource with reference $from.
 	# Note this copies only the data and not any attached file. It's very unlikely the
 	# same file would be in the system twice, however users may want to clone an existing resource
@@ -2271,11 +2272,6 @@ function resource_log($resource, $type, $field, $notes="", $fromvalue="", $toval
                 break;
 
             default:                
-                if(strlen($tovalue)>60000)
-                    {
-                    // Trim this as it can cause out of memory errors with class.Diff.php e.g.when cresatng previews for large PDF files
-                    $tovalue = substr($tovalue,60000);
-                    }
                 $diff = log_diff($fromvalue, $tovalue);
             }
         }
@@ -2684,7 +2680,7 @@ function delete_exif_tmpfile($tmpfile)
 	if(file_exists($tmpfile)){unlink ($tmpfile);}
 }
 
-function update_resource($r,$path,$type,$title,$ingest=false,$createPreviews=true)
+function update_resource($r,$path,$type,$title,$ingest=false,$createPreviews=true, $extension='')
 	{
 	# Update the resource with the file at the given path
 	# Note that the file will be used at it's present location and will not be copied.
@@ -2693,18 +2689,16 @@ function update_resource($r,$path,$type,$title,$ingest=false,$createPreviews=tru
 	update_resource_type($r, $type);
 
 	# Work out extension based on path
-	$extension=explode(".",$path);
-        
-        if(count($extension)>1)
-            {
-            $extension=trim(strtolower(end($extension)));
-            }
-        else
-            {
-            //No extension
-            $extension="";
-            }
-            
+	
+	if($extension=='')
+		{
+		$extension=pathinfo($path, PATHINFO_EXTENSION);
+		}
+	
+    if($extension!=='')
+    	{
+    	$extension=trim(strtolower($extension));
+		}
 
 	# file_path should only really be set to indicate a staticsync location. Otherwise, it should just be left blank.
 	if ($ingest){$file_path="";} else {$file_path=escape_check($path);}
@@ -2799,7 +2793,7 @@ function update_resource($r,$path,$type,$title,$ingest=false,$createPreviews=tru
 	return $r;
 	}
 
-function import_resource($path,$type,$title,$ingest=false,$createPreviews=true)
+function import_resource($path,$type,$title,$ingest=false,$createPreviews=true, $extension='')
 	{
 	# Import the resource at the given path
 	# This is used by staticsync.php and Camillo's SOAP API
@@ -2807,7 +2801,7 @@ function import_resource($path,$type,$title,$ingest=false,$createPreviews=true)
 
 	# Create resource
 	$r=create_resource($type);
-        return update_resource($r, $path, $type, $title, $ingest, $createPreviews);
+        return update_resource($r, $path, $type, $title, $ingest, $createPreviews, $extension);
 	}
 
 function get_alternative_files($resource,$order_by="",$sort="")
@@ -3756,7 +3750,17 @@ function filter_match($filter,$name,$value)
 function log_diff($fromvalue, $tovalue)
     {
     $return = '';
-
+    
+    // Trim values as it can cause out of memory errors with class.Diff.php e.g. when saving extracted text or creating previews for large PDF files
+    if(strlen($tovalue)>10000)
+        {
+        $tovalue = mb_substr($tovalue,10000);
+        }    
+    if(strlen($tovalue)>10000)
+        {
+        $tovalue = mb_substr($tovalue,10000);
+        }
+    
     // Remove any database escaping
     $fromvalue = str_replace("\\", '', $fromvalue);
     $tovalue   = str_replace("\\", '', $tovalue);
@@ -4561,12 +4565,13 @@ function resource_type_config_override($resource_type)
 * @param integer|array $resource_id - Resource unique ref -or- array of Resource refs
 * @param integer $archive - Destination archive state
 * @param integer|array $existingstates -  existing archive state _or_ array of corresponding existing archive states
+* @param integer $collection - optional id of collection containing resources
 * 
 * @return void
 */
-function update_archive_status($resource, $archive, $existingstates = array())
+function update_archive_status($resource, $archive, $existingstates = array(), $collection  = 0)
     {
-    global $userref;
+    global $userref, $user_resources_approved_email;
 
     if(!is_array($resource))
         {
@@ -4591,6 +4596,31 @@ function update_archive_status($resource, $archive, $existingstates = array())
         }
 
     sql_query("UPDATE resource SET archive = '" . escape_check($archive) .  "' WHERE ref IN ('" . implode("', '", $resource) . "')");
+    
+    // Send notifications
+    debug("update_archive_status - resources=(" . implode(",",$resource) . "), archive: " . $archive . ", existingstates:(" . implode(",",$existingstates) . "), collection: " . $collection);
+    switch ($archive)
+        {
+        case '0':
+            if (isset($existingstates[0]) && $existingstates[0] == -1 && $user_resources_approved_email)
+                {
+                notify_user_resources_approved(array($ref));
+                }
+            break;
+        
+        case '-1':
+            if (isset($existingstates[0]) && $existingstates[0] == -2)
+                {
+                notify_user_contributed_submitted($resource, $collection);
+                }
+    
+        case '-2':
+            if (isset($existingstates[0]) && $existingstates[0] == -1)
+                {
+                notify_user_contributed_unsubmitted($resource);
+                }
+            break;
+        }
     
     return;
     }
@@ -4794,7 +4824,7 @@ function get_video_info($file)
 * Provides the ability to copy any metadata field data from one resource to another.
 * 
 * @param integer $from Resource we are copying data from
-* @param integer $ref  The Resource ID that needs updating
+* @param integer $to   The Resource ID that needs updating
 * 
 * @return void
 */

@@ -12,24 +12,26 @@ $themes_order_by=getvalescaped("themes_order_by",getvalescaped("saved_themes_ord
 $sort=getvalescaped("sort",getvalescaped("saved_themes_sort","ASC"));rs_setcookie('saved_themes_sort', $sort);
 $per_page=getvalescaped("per_page_list",$default_perpage_list,true);rs_setcookie('per_page_list', $per_page);
 $simpleview=$themes_simple_view || getval("simpleview","")=="true";
-
 $themes = array();
 $themecount = 0;
-foreach ($_GET as $key => $value) {
+foreach ($_GET as $key => $value)
+    {
 	// only set necessary vars
-	
 	if (substr($key,0,5)=="theme" && substr($key,0,6)!="themes"){		
 		if (empty($value)) break;	# if the value is empty then there is no point in continuing iterations of the loop
 		$themes[$themecount] = rawurldecode($value);
 		$themecount++;
 		}
 	}
+    
 
 if(getval("create","") != "" && enforcePostRequest(getval("ajax", false)))
 	{
 	// Create the collection and reload the page
 	$collectionname = getvalescaped("collectionname","");
 	$newcategory = getvalescaped("category_name","");
+    $themes = GetThemesFromRequest($theme_category_levels);
+    $themecount = count($themes);
 	// Add the new category to the theme array
 	if($newcategory != ""){$themes[]=$newcategory;}
 	$new_collection = create_collection($userref,$collectionname,0,0,0,true,$themes);
@@ -874,19 +876,7 @@ for($x = 0; $x < count($themes); $x++)
 	*/
 	$new_collection_additional_params['theme' . (0 == $x ? '': $x + 1)] = $themes[$x];
 	}
-
-renderCallToActionTile(
-	generateURL(
-		"{$baseurl_short}pages/themes.php",
-		array(
-			'new'              => 'true',
-			'call_to_action_tile' => 'true'
-		),
-		$new_collection_additional_params
-	));
-?>
-
-<?php
+    
 # ------- Smart Themes -------------
 if ($header=="" && !isset($themes[0]))
 	{
@@ -957,16 +947,36 @@ if ($header=="" && !isset($themes[0]))
 				
 			if($simpleview)
 				{
-				if (getval("smart_theme","")!="") // We are in the smart theme already
+				if (getval("smart_theme","") != "") // We are in the smart theme already
 					{
                     $themes = get_smart_themes_nodes($headers[$n]['ref'], (7 == $headers[$n]['type']), $node);
+                    
 					for ($m=0;$m<count($themes);$m++)
-						{										
+						{            
 						$s=$headers[$n]["name"] . ":" . $themes[$m]["name"];
+                        $theme_image_path = '';
+                        $theme_images = get_theme_image(array($themes[$m]), '', true);
+                        if(is_array($theme_images) && count($theme_images)>0)
+                            {
+                            foreach($theme_images as $theme_image)
+                                {
+                                if(file_exists(get_resource_path($theme_image,true,"pre",false)))
+                                    {
+                                    $theme_image_path=get_resource_path($theme_image,false,"pre",false);
+                                    $theme_image_detail= get_resource_data($theme_image);
+                                    break;
+                                    }
+                                }
+                            }
+                            
 						if ($themes[$m]['is_parent'])
 							{
 							?>
-							<div  id="FeaturedSimpleTile_smart_<?php echo $themes[$m]["ref"]  ; ?>" class="FeaturedSimplePanel HomePanel DashTile FeaturedSimpleTile">
+							<div id="FeaturedSimpleTile_smart_<?php echo $themes[$m]["ref"] ; ?>"  class="FeaturedSimplePanel HomePanel DashTile FeaturedSimpleTile <?php
+                            if($theme_image_path != "")
+                                {	
+                                echo " FeaturedSimpleTileImage\" style=\"background: url(" . $theme_image_path . ");background-size: cover;";
+                                }?>" >
 							<a href="<?php echo $baseurl_short?>pages/themes.php?smart_theme=<?php echo $headers[$n]["ref"] ?>&node=<?php echo $themes[$m]["node"] ?>&parentnode=<?php echo urlencode($node) ?>&parentnodename=<?php echo urlencode(getval("nodename","")) ?>&nodename=<?php echo urlencode($themes[$m]["name"]) ?>&simpleview=true" onclick="return CentralSpaceLoad(this,true);" class="FeaturedSimpleLink TileContentShadow" id="featured_tile_<?php echo $themes[$m]["ref"] ;?>">
 								<div id="FeaturedSimpleTileContents_smart<?php echo $themes[$m]["ref"]; ?>"  class="FeaturedSimpleTileContents">	
                                     <h2>
@@ -982,8 +992,12 @@ if ($header=="" && !isset($themes[0]))
 							{
 							# Has no children. Default action is to show matching resources.
 							?>
-							<div id="FeaturedSimpleTile_smart_<?php echo $themes[$m]["ref"]  ; ?>" class="FeaturedSimplePanel HomePanel DashTile FeaturedSimpleTile">
-							<a href="<?php echo $baseurl_short?>pages/search.php?search=<?php echo urlencode($s)?>&resetrestypes=true" onclick="return CentralSpaceLoad(this,true);" class="FeaturedSimpleLink TileContentShadow" id="featured_tile_<?php echo $themes[$m]["ref"]; ?>">
+                            <div id="FeaturedSimpleTile_smart_<?php echo $themes[$m]["ref"] ; ?>"  class="FeaturedSimplePanel HomePanel DashTile FeaturedSimpleTile <?php
+                            if($theme_image_path != "")
+                                {
+                                echo " FeaturedSimpleTileImage\" style=\"background: url(" . $theme_image_path . ");background-size: cover;";
+                                }?>" >
+							<a href="<?php echo $baseurl_short?>pages/search.php?search=<?php echo NODE_TOKEN_PREFIX . $themes[$m]["ref"] ?>&resetrestypes=true" onclick="return CentralSpaceLoad(this,true);" class="FeaturedSimpleLink TileContentShadow" id="featured_tile_<?php echo $themes[$m]["ref"]; ?>">
 							<div id="FeaturedSimpleTileContents_smart<?php echo $themes[$m]["ref"] ; ?>"  class="FeaturedSimpleTileContents" >	
                                     <h2>
                                         <span class="fa fa-folder"></span>
@@ -1078,10 +1092,22 @@ if ($header=="" && !isset($themes[0]))
 			} //end of if ((checkperm("f*") || checkperm("f" . $headers[$n]["ref"])) && !checkperm("f-" . $headers[$n]["ref"]) && ($smart_theme=="" || $smart_theme==$headers[$n]["ref"]))
 		} // end of for ($n=0;$n<count($headers);$n++)
 	} // end of if ($header=="" && !isset($themes[0]))
-	
-?></div><!-- End of FeaturedSimpleLinks -->
-<?php
 
+if($simpleview && !$smart_theme)
+       {
+       renderCallToActionTile(
+           generateURL(
+               "{$baseurl_short}pages/themes.php",
+               array(
+                   'new'              => 'true',
+                   'call_to_action_tile' => 'true'
+               ),
+               $new_collection_additional_params
+           ));
+       }
+?>
+</div><!-- End of FeaturedSimpleLinks -->
+<?php
 if($simpleview && $themes_show_background_image)
     {
     $slideshow_files = get_slideshow_files_data();

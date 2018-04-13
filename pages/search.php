@@ -525,7 +525,7 @@ if(($k=="" || $internal_share_access) && strpos($search,"!")===false && $archive
 $hook_result=hook("process_search_results","search",array("result"=>$result,"search"=>$search));
 if ($hook_result!==false) {$result=$hook_result;}
 
-$count_result = count($result);
+$count_result = (is_array($result) ? count($result) : 0);
 
 if ($collectionsearch)
 	{
@@ -849,7 +849,7 @@ if (isset($result_title_height))
 
 #if (is_array($result)||(isset($collections)&&(count($collections)>0)))
 
-if($enable_theme_breadcrumbs && !$search_titles && isset($theme_link) && $k=="")
+if($enable_themes && $enable_theme_breadcrumbs && !$search_titles && isset($theme_link) && $k=="")
 	{
 	// Show the themes breadcrumbs if they exist, but not if we are using the search_titles
     renderBreadcrumbs(
@@ -1127,7 +1127,7 @@ if($responsive_ui)
 	<?php
 
 		
-	$results=count($result);
+	$results=(is_array($result) ? count($result) : 0);
 	$totalpages=ceil($results/$per_page);
 	if ($offset>$results) {$offset=0;}
 	$curpage=floor($offset/$per_page)+1;
@@ -1266,7 +1266,7 @@ if($responsive_ui)
 	if ($search_includes_resources) {
 	
 	# work out common keywords among the results
-	if ((count($result)>$suggest_threshold) && (strpos($search,"!")===false) && ($suggest_threshold!=-1))
+	if (is_array($result) && (count($result)>$suggest_threshold) && (strpos($search,"!")===false) && ($suggest_threshold!=-1))
 		{
 		for ($n=0;$n<count($result);$n++)
 			{

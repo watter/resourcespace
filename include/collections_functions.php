@@ -664,65 +664,106 @@ function index_collection($ref,$index_string='')
 	}
 }
 
-function save_collection($ref)
+function save_collection($ref, $coldata=array())
 	{
 	global $theme_category_levels,$attach_user_smart_groups;
 	
-	if (!collection_writeable($ref)) {return false;}
+	if (!is_numeric($ref) || !collection_writeable($ref))
+        {
+        return false;
+        }
 	
-	$allow_changes=(getval("allow_changes","")!=""?1:0);
+    if(count($coldata) == 0)
+        {
+        // Old way
+        $coldata["name"]            = getval("name","");
+        $coldata["allow_changes"]   = getval("allow_changes","") != "" ? 1 : 0;
+        $coldata["public"]          = getval('public', 0, true);
+        $coldata["keywords"]        = getval("keywords","");
+        for($n=1;$n<=$theme_category_levels;$n++)
+            {
+            if ($n==1)
+                {
+                $themeindex = "";
+                }
+            else
+                {
+                $themeindex = $n;
+                }
+            $themename = getvalescaped("theme$themeindex","");
+			if($themename != "")
+                {
+                $coldata["theme" . $themeindex] = $themename;
+                }
+            
+			if (getval("newtheme$themeindex","")!="")
+                {
+				$coldata["theme". $n] = trim(getval("newtheme$themeindex",""));
+				}    
+            }
+            
+        if (checkperm("h"))
+            {
+            $coldata["home_page_publish"]   = (getval("home_page_publish","") != "") ? "1" : "0";
+            $coldata["home_page_text"]      = getval("home_page_text","");
+            if (getval("home_page_image","") != "")
+                {
+                $coldata["home_page_image"] = getval("home_page_image","");
+                }
+            }
+        }
+        
+    $oldcoldata = get_collection($ref);    
 
-    $public = getvalescaped('public', '', true);
-	
-	# Next line disabled as it seems incorrect to override the user's setting here. 20071217 DH.
-	#if ($theme!="") {$allow_changes=0;} # lock allow changes to off if this is a theme
-	
-	# Update collection with submitted form data
-	if (!hook('modifysavecollection')) {
-	$sql="update collection set
-				name='" . rawurldecode(getvalescaped("name","")) . "',
-				".hook('savecollectionadditionalfields')."
-				keywords='" . getvalescaped("keywords","") . "',
-				public=" . ($public==''?"null":"'" . $public . "'") . ",";
-		
-		for($n=1;$n<=$theme_category_levels;$n++){
-			if ($n==1){$themeindex="";} else {$themeindex=$n;}
-			$themes[$n]=getvalescaped("theme$themeindex","");
-			if (getval("newtheme$themeindex","")!="") {
-				$themes[$n]=trim(getvalescaped("newtheme$themeindex",""));
-				}
-			if (isset($themes[$n])){
-				$sql.="theme".$themeindex."='" . $themes[$n]. "',";
-				}
-		}
-
-	$sql.="allow_changes='" . $allow_changes . "'";
-	
-	if (checkperm("h"))
-		{	
-		$sql.="
-			,home_page_publish='" . (getvalescaped("home_page_publish","")!=""?"1":"0") . "'
-			,home_page_text='" . getvalescaped("home_page_text","") . "'";
-		if (getval("home_page_image","")!="")
-			{
-			$sql.=",home_page_image='" . getvalescaped("home_page_image","") . "'";
-			}
-		}
-		$modified_sql=hook('morehomepagepublishsave',"",array($sql));
-		if(!empty($modified_sql)){$sql=$modified_sql;}
-		
-	    $sql.=" where ref='$ref'";
-
-	sql_query($sql);
-	} # end replace hook - modifysavecollection
+	// Create sql column update text
+	if (!hook('modifysavecollection'))
+        {
+        $sqlset = array();
+        foreach($coldata as $colopt=>$colset)
+            {
+            if(!isset($oldcoldata[$colopt]) || $colset != $oldcoldata[$colopt])
+                {
+                $sqlset[$colopt] = $colset;    
+                }                
+            }
+        
+        if(count($sqlset) > 0)
+            {
+            $sqlupdate = "";
+            foreach($sqlset as $colopt => $colset)
+                {
+                if($sqlupdate != "")
+                    {
+                    $sqlupdate .= ",";    
+                    }
+                $sqlupdate .= $colopt . "='" . escape_check($colset) . "' ";   
+                }
+                
+            $sql = "UPDATE collection SET " . $sqlupdate . " WHERE ref='" . $ref . "'";
+            sql_query($sql);
+            
+            // Log the changes
+            foreach($sqlset as $colopt => $colset)
+                {
+                switch($colopt)
+                    {
+                    case "public";
+                        collection_log($ref, 'A', 0, $colset ? 'public' : 'private');
+                    break;    
+                    case "allow_changes";
+                        collection_log($ref, 'U', 0,  $colset ? 'true' : 'false' );
+                    break; 
+                    default;
+                        collection_log($ref, 'e', 0,  $colopt  . " = " . $colset);
+                    break;
+                    }
+                 
+                }
+            }
+        } # end replace hook - modifysavecollection
 	
 	index_collection($ref);
-
-    // Log changing access for this collection
-    // AC: save_collection() should be changed in terms of the way it works
-    // as it submits everything rather then just update only what is needed
-    collection_log($ref, 'A', 0, $public ? 'public' : 'private');
-	
+  
 	$old_attached_users=sql_array("SELECT user value FROM user_collection WHERE collection='$ref'");
 	$new_attached_users=array();
 	$collection_owner=sql_value("SELECT u.fullname value FROM collection c LEFT JOIN user u on c.user=u.ref WHERE c.ref=$ref","");
@@ -818,8 +859,7 @@ function save_collection($ref)
 				}
 			}
 		}
-	
-	
+		
 	# Remove all resources?
 	if (getval("removeall","")!="")
 		{
@@ -836,11 +876,12 @@ function save_collection($ref)
 
 		}
 		
+	$result_limit = getvalescaped("result_limit", 0, true);
+
 	# Update limit count for saved search
-	if (isset($_POST["result_limit"]))
+	if ($result_limit > 0)
 		{
-		sql_query("update collection_savedsearch set result_limit='" . getvalescaped("result_limit","") . "' where collection='$ref'");
-		
+		sql_query("update collection_savedsearch set result_limit='" . $result_limit . "' where collection='$ref'");
 		}
 	
 	refresh_collection_frame();
@@ -1399,7 +1440,7 @@ function add_saved_search_items($collection, $search = "", $restypes = "", $arch
     $searchcount = count($results);
     if($searchcount > 0)
         {
-        sql_query("UPDATE collection_resource SET sortorder = sortorder + '" . $searchcount . "' WHERE collection='" . $collection . "'");
+        sql_query("UPDATE collection_resource SET sortorder = if(isnull(sortorder),'" . $searchcount . "',sortorder + '" . $searchcount . "') WHERE collection='" . $collection . "'");
         }
 
 	for ($r=0;$r<$searchcount;$r++)
@@ -1536,48 +1577,59 @@ function get_theme_image($themes=array(), $collection="", $smart=false)
 		{
 		if ($smart)
 			{
-			$nodes='';
-			foreach($themes as $node){
-				$nodes.=($nodes!=='' ? ', ' : '') . $node['ref'];
-			}
-			if($nodes=='')
+			$nodestring = '';
+			foreach($themes as $node)
+                {
+				$nodestring .= NODE_TOKEN_PREFIX . $node['ref'];
+                }
+                
+			if($nodestring=='')
 				{
 				return false;
 				}
-			$sqlselect="select r.ref value from resource_node rn join resource r on rn.resource=r.ref where rn.node in (" . $nodes . ") and r.archive=0";
-			$orderby=" order by r.hit_count desc, r.ref desc";
+                
+            // As we are using nodes just do a simple search so that permissions are honoured
+            $images = do_search($nodestring,'','hit_count',0,-1,'desc',false,0,false,false,'',true,false,true);
+            return is_array($images) ? array_column($images, "ref") : array();
 			}
 		else
 			{
-			$sqlselect="select r.ref value from collection c join collection_resource cr on c.ref=cr.collection join resource r on cr.resource=r.ref where c.public=1 and c.theme='" . escape_check($themes[0]) . "' ";
-		
+			$sqlselect="select r.ref from collection c join collection_resource cr on c.ref=cr.collection join resource r on cr.resource=r.ref where c.public=1 and c.theme='" . escape_check($themes[0]) . "' ";
+            
+            // Add search sql so we honour permissions
+            $searchsql = do_search("",'','',0,-1,'desc',false,0,false,false,'',false,false,true,false,true);
 			$orderby=" order by cr.use_as_theme_thumbnail desc";
-			for ($n=2;$n<=count($themes)+1;$n++){
-				if (isset($themes[$n-1])){
+			for ($n=2;$n<=count($themes)+1;$n++)
+                {
+				if (isset($themes[$n-1]))
+                    {
 					$sqlselect.=" and theme".$n."='" . escape_check($themes[$n-1]) . "' ";
-				} 
-				else {
-					if ($n<=$theme_category_levels){
+                    } 
+				else
+                    {
+					if ($n<=$theme_category_levels)
+                        {
 						# Resources in sub categories can be used but should be below those in the current category
 						$orderby.=", theme".$n . " ";
-					}
-				}
-			} 
+                        }
+                    }
+                } 
 
-			if($collection!="")
+			if($collection != "")
 				{
 				$sqlselect.=" and c.ref = '" . escape_check($collection) .  "'";
+                $orderby.=",r.hit_count desc,r.ref desc";
 				}
 			
 			$orderby.=",r.hit_count desc,r.ref desc";
 			}
 	
-		$sqlselect.=" and r.has_image=1 ";
-	
-		$sql = $sqlselect . $orderby . " limit " .$theme_images_number;
-		$images=sql_array($sql,0);	
-		}
-	if (count($images)>0) {return $images;}
+		$sqlselect .= " and r.has_image=1 ";
+		$sql = "SELECT ti.ref value from (" . $sqlselect . $orderby . ") ti JOIN (" . $searchsql . ") ar ON ti.ref=ar.ref WHERE ar.ref IS NOT NULL limit " .$theme_images_number;
+		
+        $images=sql_array($sql,0);	
+        if (count($images)>0) {return $images;}
+        }
 	return false;
 	}
 
@@ -1877,25 +1929,7 @@ function collection_log($collection,$type,$resource,$notes = "")
 	
 	sql_query("insert into collection_log(date,user,collection,type,resource, notes) values (now()," . (($userref!="")?"'$userref'":"null") . ",'$collection','$type'," . (($resource!="")?"'$resource'":"null") . ", '$notes')");
 	}
-/*  Log entry types  
-$lang["collectionlog-r"]="Removed resource";
-$lang["collectionlog-R"]="Removed all resources";
-$lang["collectionlog-D"]="Deleted all resources";
-$lang["collectionlog-d"]="Deleted resource"; // this shows external deletion of any resources related to the collection.
-$lang["collectionlog-a"]="Added resource";
-$lang["collectionlog-c"]="Added resource (copied)";
-$lang["collectionlog-m"]="Added resource comment";
-$lang["collectionlog-*"]="Added resource rating";
-$lang["collectionlog-S"]="Shared collection with "; //  + notes field
-$lang["collectionlog-E"]="E-mailed collection to ";//  + notes field
-$lang["collectionlog-s"]="Shared Resource with ";//  + notes field
-$lang["collectionlog-T"]="Stopped sharing collection with ";//  + notes field
-$lang["collectionlog-t"]="Stopped access to resource by ";//  + notes field
-$lang["collectionlog-X"]="Collection deleted";
-$lang["collectionlog-b"]="Batch transformed";
-$lang["collectionlog-A"]="Changed access to "; // +notes field
-$lang["collectionlog-Z"]="Collection downloaded";
-*/
+    
 function get_collection_log($collection, $fetchrows=-1)
 	{
 	global $view_title_field;	
@@ -2696,7 +2730,7 @@ function new_featured_collection_form(array $themearray = array())
 *
 * @param int $collection    Collection ID
 *
-* @return array | false     Array containing fetailsof last edit (resource ID, timestamp and username of user who performed edit)
+* @return array | false     Array containing details of last edit (resource ID, timestamp and username of user who performed edit)
 */    
 function get_last_resource_edit($collection)
     {
@@ -2720,3 +2754,30 @@ function get_last_resource_edit($collection)
     $lastusername = (trim($lastuserdetails[0]["fullname"]) != "") ? $lastuserdetails[0]["fullname"] : $lastuserdetails[0]["username"];
     return array("ref" => $lastmodified[0]["ref"],"time" => $timestamp, "user" => $lastusername);
     }
+
+/**
+* Get a themes array
+*
+* @param int $levels    Number of levels to parse from request
+* 
+* @return array         Array containing names of themes matching the syntax used in the collection table i.e. theme, theme2, theme3
+*/   
+function GetThemesFromRequest($levels)
+    {
+    $themes = array();
+    for($n=1;$n <= $levels;$n++)
+        {
+        $themeindex = ($n == 1 ? "" : $n + 1);
+        $themename = getval("theme$themeindex","");
+        if($themename != "")
+            {
+            $themes[] = $themename;
+            }
+        else
+            {
+            break;    
+            }
+        }           
+    return $themes;
+    }
+

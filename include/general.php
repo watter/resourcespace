@@ -199,11 +199,13 @@ function get_resource_path(
 			$path_suffix="/resized/";
 			}
 		}
-	else
-		{
-		$path_suffix="/";
-		}
-	
+    else
+        {
+        // If getting the physical path, use the appropriate directory separator. For URL, it can only use forward 
+        // slashes (/). For more information, see RFC 3986 (https://tools.ietf.org/html/rfc3986)
+        $path_suffix = ($getfilepath ? DIRECTORY_SEPARATOR : "/");
+        }
+
 	for ($n=0;$n<strlen($ref);$n++)
 		{
 		$folder.=substr($ref,$n,1);
@@ -3253,33 +3255,33 @@ function sorthighlights($a, $b)
     return ($a < $b) ? -1 : 1;
     }
 
-function pager($break=true)
+function pager($break=true,$scrolltotop=true)
 	{
 	global $curpage,$url,$totalpages,$offset,$per_page,$lang,$jumpcount,$pager_dropdown,$pagename;
 
     $modal  = ('true' == getval('modal', ''));
-
+    $scroll =  $scrolltotop ? "true" : "false"; 
 	$jumpcount++;
 	if(!hook("replace_pager")){
 		if ($totalpages!=0 && $totalpages!=1){?>     
-			<span class="TopInpageNavRight"><?php if ($break) { ?>&nbsp;<br /><?php } hook("custompagerstyle"); if ($curpage>1) { ?><a class="prevPageLink" title="<?php echo $lang["previous"]?>" href="<?php echo $url?>&amp;go=prev&amp;offset=<?php echo urlencode($offset-$per_page) ?>" <?php if(!hook("replacepageronclick_prev")){?>onClick="return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this, true);" <?php } ?>><?php } ?><i aria-hidden="true" class="fa fa-arrow-left"></i><?php if ($curpage>1) { ?></a><?php } ?>&nbsp;&nbsp;
+			<span class="TopInpageNavRight"><?php if ($break) { ?>&nbsp;<br /><?php } hook("custompagerstyle"); if ($curpage>1) { ?><a class="prevPageLink" title="<?php echo $lang["previous"]?>" href="<?php echo $url?>&amp;go=prev&amp;offset=<?php echo urlencode($offset-$per_page) ?>" <?php if(!hook("replacepageronclick_prev")){?>onClick="return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this, <?php echo $scroll; ?>);" <?php } ?>><?php } ?><i aria-hidden="true" class="fa fa-arrow-left"></i><?php if ($curpage>1) { ?></a><?php } ?>&nbsp;&nbsp;
 
 			<?php if ($pager_dropdown){
 				$id=rand();?>
-				<select id="pager<?php echo $id;?>" class="ListDropdown" style="width:50px;" <?php if(!hook("replacepageronchange_drop","",array($id))){?>onChange="var jumpto=document.getElementById('pager<?php echo $id?>').value;if ((jumpto>0) && (jumpto<=<?php echo $totalpages?>)) {return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load('<?php echo $url?>&amp;go=page&amp;offset=' + ((jumpto-1) * <?php echo urlencode($per_page) ?>), true);}" <?php } ?>>
+				<select id="pager<?php echo $id;?>" class="ListDropdown" style="width:50px;" <?php if(!hook("replacepageronchange_drop","",array($id))){?>onChange="var jumpto=document.getElementById('pager<?php echo $id?>').value;if ((jumpto>0) && (jumpto<=<?php echo $totalpages?>)) {return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load('<?php echo $url?>&amp;go=page&amp;offset=' + ((jumpto-1) * <?php echo urlencode($per_page) ?>), <?php echo $scroll; ?>);}" <?php } ?>>
 				<?php for ($n=1;$n<$totalpages+1;$n++){?>
 					<option value='<?php echo $n?>' <?php if ($n==$curpage){?>selected<?php } ?>><?php echo $n?></option>
 				<?php } ?>
 				</select>
 			<?php } else { ?>
 
-				<div class="JumpPanel" id="jumppanel<?php echo $jumpcount?>" style="display:none;"><?php echo $lang["jumptopage"]?>: <input type="text" size="1" id="jumpto<?php echo $jumpcount?>" onkeydown="var evt = event || window.event;if (evt.keyCode == 13) {var jumpto=document.getElementById('jumpto<?php echo $jumpcount?>').value;if (jumpto<1){jumpto=1;};if (jumpto><?php echo $totalpages?>){jumpto=<?php echo $totalpages?>;};<?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load('<?php echo $url?>&amp;go=page&amp;offset=' + ((jumpto-1) * <?php echo urlencode($per_page) ?>), true);}">
+				<div class="JumpPanel" id="jumppanel<?php echo $jumpcount?>" style="display:none;"><?php echo $lang["jumptopage"]?>: <input type="text" size="1" id="jumpto<?php echo $jumpcount?>" onkeydown="var evt = event || window.event;if (evt.keyCode == 13) {var jumpto=document.getElementById('jumpto<?php echo $jumpcount?>').value;if (jumpto<1){jumpto=1;};if (jumpto><?php echo $totalpages?>){jumpto=<?php echo $totalpages?>;};<?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load('<?php echo $url?>&amp;go=page&amp;offset=' + ((jumpto-1) * <?php echo urlencode($per_page) ?>), <?php echo $scroll; ?>);}">
 			&nbsp;<a aria-hidden="true" class="fa fa-times-circle" href="#" onClick="document.getElementById('jumppanel<?php echo $jumpcount?>').style.display='none';document.getElementById('jumplink<?php echo $jumpcount?>').style.display='inline';"></a></div>
 			
 				<a href="#" id="jumplink<?php echo $jumpcount?>" title="<?php echo $lang["jumptopage"]?>" onClick="document.getElementById('jumppanel<?php echo $jumpcount?>').style.display='inline';document.getElementById('jumplink<?php echo $jumpcount?>').style.display='none';document.getElementById('jumpto<?php echo $jumpcount?>').focus(); return false;"><?php echo $lang["page"]?>&nbsp;<?php echo htmlspecialchars($curpage) ?>&nbsp;<?php echo $lang["of"]?>&nbsp;<?php echo $totalpages?></a>
 			<?php } ?>
 
-			&nbsp;&nbsp;<?php if ($curpage<$totalpages) { ?><a class="nextPageLink" title="<?php echo $lang["next"]?>" href="<?php echo $url?>&amp;go=next&amp;offset=<?php echo urlencode($offset+$per_page) ?>" <?php if(!hook("replacepageronclick_next")){?>onClick="return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this, true);" <?php } ?>><?php } ?><i aria-hidden="true" class="fa fa-arrow-right"></i><?php if ($curpage<$totalpages) { ?></a><?php } hook("custompagerstyleend"); ?>
+			&nbsp;&nbsp;<?php if ($curpage<$totalpages) { ?><a class="nextPageLink" title="<?php echo $lang["next"]?>" href="<?php echo $url?>&amp;go=next&amp;offset=<?php echo urlencode($offset+$per_page) ?>" <?php if(!hook("replacepageronclick_next")){?>onClick="return <?php echo $modal ? 'Modal' : 'CentralSpace'; ?>Load(this, <?php echo $scroll; ?>);" <?php } ?>><?php } ?><i aria-hidden="true" class="fa fa-arrow-right"></i><?php if ($curpage<$totalpages) { ?></a><?php } hook("custompagerstyleend"); ?>
 			</span>
 			
 		<?php } else { ?><span class="HorizontalWhiteNav">&nbsp;</span><div <?php if ($pagename=="search"){?>style="display:block;"<?php } else { ?>style="display:inline;"<?php }?>>&nbsp;</div><?php } ?>
@@ -3493,13 +3495,45 @@ function get_suggested_keywords($search,$ref="")
 	{
 	# For the given partial word, suggest complete existing keywords.
 	global $autocomplete_search_items,$autocomplete_search_min_hitcount;
-	if ($ref==""){
-		return sql_array("select distinct keyword value from keyword where keyword like '" . escape_check($search) . "%' and hit_count >= '$autocomplete_search_min_hitcount' order by hit_count desc limit $autocomplete_search_items");
-		}
-	else 
-		{
-		return sql_array("select distinct k.keyword value,rk.resource_type_field from keyword k,resource_keyword rk where k.ref=rk.keyword and k.keyword like '" . escape_check($search) . "%' and rk.resource_type_field='".$ref."' and k.hit_count >= '$autocomplete_search_min_hitcount' order by k.hit_count desc limit $autocomplete_search_items");
-		}
+    
+    # Fetch a list of fields that are not available to the user - these must be omitted from the search.
+    $hidden_indexed_fields=get_hidden_indexed_fields();
+    
+    $restriction_clause_free = "";
+    $restriction_clause_node = ""; 
+    
+    if (count($hidden_indexed_fields) > 0)
+        {
+        $restriction_clause_free .= " AND rk.resource_type_field NOT IN ('" . join("','", $hidden_indexed_fields) . "')";
+        $restriction_clause_node .= " AND n.resource_type_field NOT IN ('" . join(",", $hidden_indexed_fields) . "')";                                        
+        }
+    
+    if ((string)(int)$ref == $ref)
+        {
+        $restriction_clause_free .= " AND rk.resource_type_field = '" . $ref . "'";
+        $restriction_clause_node .= " AND n.resource_type_field = '" . $ref . "'";                                        
+        }    
+	
+    return sql_array("SELECT ak.keyword value
+        FROM
+            (
+            SELECT k.keyword, k.hit_count
+            FROM keyword k
+            JOIN resource_keyword rk ON rk.keyword=k.ref
+            WHERE k.keyword LIKE '" . escape_check($search) . "%'" . $restriction_clause_free . "
+            AND k.hit_count >= '$autocomplete_search_min_hitcount'
+         
+            UNION
+         
+            SELECT k.keyword, k.hit_count
+            FROM keyword k
+            JOIN node_keyword nk ON nk.keyword=k.ref
+            JOIN node n ON n.ref=nk.node
+            WHERE k.keyword LIKE '" . escape_check($search) . "%'" . $restriction_clause_node . "
+            ) ak
+        GROUP BY ak.keyword, ak.hit_count 
+        ORDER BY ak.hit_count DESC LIMIT " . $autocomplete_search_items
+        );
 	}
 	
 function check_password($password)
@@ -5261,7 +5295,7 @@ function get_utility_path($utilityname, &$checked_path = null)
                     'win'  => $ghostscript_executable
                 ),
                 $checked_path,
-                true);
+                true) . ' -dPARANOIDSAFER'; 
 
         case 'ffmpeg':
             // FFmpeg path not configured
