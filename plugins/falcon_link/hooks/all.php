@@ -1,12 +1,4 @@
 <?php
-
-function HookFalcon_linkAll($resource_type,$col, $extension)
-    {
-    global $language;
-   
-    return false;
-    }
-    
     
 function HookFalcon_linkAllRender_actions_add_collection_option($top_actions,$options,$collection_data)
     {
