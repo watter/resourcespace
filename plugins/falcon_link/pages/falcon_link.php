@@ -13,6 +13,7 @@ $collection = getval("collection",0,true);
 $action     = getval("falcon_action","publish");
 $saveform   = getval("save","") != "";
 $published  = array();
+$nopublish  = 0;
 $publishedresources = 0;
 $errormessages = array();
 
@@ -22,17 +23,18 @@ if($ref != 0)
     $access = get_resource_access($ref);
     $resources = array();
     $resources[]["ref"] = $ref;
+    $rescount = 1;
     }
 elseif($collection != 0)
     {
     $access = collection_min_access($collection);
     $result = do_search("!collection" . $collection,'','','',-1,'',false,0,false,false,'',false,false,true);
-    if(count($result) == 0)
+    $rescount = count($result);
+    if($rescount == 0)
         {
         exit($lang["noresourcesfound"]);        
         }
     $resources = $result;
-    //exit(print_r($resources));
     }
 else
     {
@@ -63,19 +65,24 @@ foreach($resources as $resource)
 			{
 			$results[$resid] = $lang["falcon_link_resource_not_published"];
 			
-			// Check that files actually exists
-			$resourcedata = get_resource_data($resid);
-			$check = get_resource_path($resid,true,'',false,$resourcedata['file_extension']);
-			if(!file_exists($check))
-				{
-				$results[$resid] .= " (" . $lang["resourcenotfound"] . ")";
-				}
+			if($action == "publish")
+                {
+                // Check that files actually exists
+                $resourcedata = get_resource_data($resid);
+                $check = get_resource_path($resid,true,'',false,$resourcedata['file_extension']);
+                if(!file_exists($check))
+                	{
+                    $results[$resid] = $lang["falcon_link_resource_publish_unavailable"];
+                	$results[$resid] .= " (" . $lang["resourcenotfound"] . ")";
+                    $nopublish++;
+                	}
+                }
 			}
 	   }
         	
 if ($saveform)
     {
-    if(strtolower($action) == "publish")
+    if($action == "publish")
         {
 		// Get posted values when publishing individual resources as we can override
 		$template_text      = getvalescaped("template_text","");
@@ -91,7 +98,7 @@ if ($saveform)
 				}
             }
         }
-    elseif(strtolower($action) == "archive")
+    elseif($action == "archive")
         {
         $success = falcon_link_archive($resources);  // If ok, update resource with Falcon Content Pool ref
         // Redirect to resource view/collection search page with message to advise of success
@@ -116,7 +123,7 @@ if ($saveform)
 
 include "../../../include/header.php";
 
-if($collection==0)
+if($collection == 0)
 	{
 	echo "<a href='" . $baseurl_short . "pages/view.php?ref=" . $resid . "' onClick='return CentralSpaceLoad(this,true);'>" . LINK_CARET_BACK . $lang["backtoresourceview"] . "</a></p>";
 	}
@@ -128,7 +135,7 @@ else
 
 
 <div class="BasicsBox"> 
-    <h1><?php echo ($action == "publish") ? $lang["falcon_link_publish"] : $lang["falcon_link_archive"] ?></h1>
+    <h1><?php echo ($collection != 0) ? $lang["falcon_link_manage"] : (($action == "publish") ? $lang["falcon_link_publish"] : $lang["falcon_link_archive"]) ?></h1>
 
 
 <?php
@@ -151,7 +158,7 @@ if(isset($message))
 echo "<div class='Listview'>";
 echo "<table class='ListviewStyle'>";
 echo "<tr class='ListviewTitleStyle'><td></td>";
-if($action=="publish" && $collection != 0 && !$saveform)
+if($action == "publish" && $collection != 0 && !$saveform)
 	{
 	// Show the desciption and tag headers if publishing a collection
 	echo "<td>" . $lang["falcon_link_template_description"]	. "</td>";
@@ -191,7 +198,7 @@ foreach($resources as $resource)
 	elseif(isset($published[$resid]))
 		{
 		$falconurl=str_replace("[id]",$published[$resid],$falcon_link_template_url);
-		echo $lang["falcon_link_already_published"] . " <br />(<a href='" . $falconurl . "' target='_blank' title='" . $lang["falcon_link_view_in_falcon"] ."'>" . htmlspecialchars($published[$resid]) . "</a>)";
+		echo $lang["falcon_link_already_published"] . " <br />(<a href='" . $falconurl . "' target='_blank' title='" . htmlspecialchars($lang["falcon_link_view_in_falcon"]) ."'>" . htmlspecialchars($published[$resid]) . "</a>)";
 		}
 	
 	echo "</td>";
@@ -210,42 +217,37 @@ if(!$saveform)
 	<form action="<?php echo $baseurl ?>/plugins/falcon_link/pages/falcon_link.php" id="falcon_link_form" method="post" onSubmit="return CentralSpacePost(this,true);" >
 	
 		<?php
-		if($action == "publish")
-			{
-			if($collection == 0)
-				{?>
-				<div class="Question" >
-					<label for="template_text"><?php echo htmlspecialchars($lang["falcon_link_template_description"]) ?></label>
-					<textarea class="stdwidth" rows="6" columns="50" id="template_text" name="template_text"><?php echo htmlspecialchars($template_text); ?></textarea>
-					<br />
-				</div>
-				<div class="Question" >
-					<label for="template_tags"><?php echo htmlspecialchars($lang["falcon_link_template_tags"]) ?></label>
-					<textarea class="stdwidth" rows="6" columns="50" id="template_tags" name="template_tags"><?php echo htmlspecialchars($template_tags); ?></textarea>
-					<br />
-				</div>
-				<?php
-				}?>
-			<div class="QuestionSubmit">			
-				<input type="hidden" name="falcon_action" value="publish">
-				<label for="submit"></label>
-				<input type="submit" name="save" value="<?php echo htmlspecialchars($lang["falcon_link_publish_button_text"]); ?>" />
-				<div class="clearerleft" ></div>
-			</div>
+        if($collection == 0 && $action =="publish" && ($publishedresources + $nopublish == 0))
+            {?>
+            <div class="Question" >
+                <label for="template_text"><?php echo htmlspecialchars($lang["falcon_link_template_description"]) ?></label>
+                <textarea class="stdwidth" rows="6" columns="50" id="template_text" name="template_text"><?php echo htmlspecialchars($template_text); ?></textarea>
+                <br />
+            </div>
+            <div class="Question" >
+                <label for="template_tags"><?php echo htmlspecialchars($lang["falcon_link_template_tags"]) ?></label>
+                <textarea class="stdwidth" rows="6" columns="50" id="template_tags" name="template_tags"><?php echo htmlspecialchars($template_tags); ?></textarea>
+                <br />
+            </div>
+            <?php
+            }?>
+        
+        <div class="QuestionSubmit">			
+			<input type="hidden" id="falcon_action" name="falcon_action" value="<?php echo $action ?>">
+            <label for="submit"></label>
+        <?php   
+		if(($action == "publish" || $collection != 0) && ($publishedresources + $nopublish < $rescount))
+			{?>
+			<input type="submit" name="publish" onclick="document.getElementById('falcon_action').value='publish';" value="<?php echo htmlspecialchars($lang["falcon_link_publish_button_text"]); ?>" />			
 			<?php
 			}
-		else
-			{
-			?>
-			<div class="QuestionSubmit">
-				<input type="hidden" name="falcon_action" value="archive">
-				<label for="submit"></label>
-				<input type="submit" name="save" value="<?php echo htmlspecialchars($lang["falcon_link_archive_button_text"]);?>" />
-				<div class="clearerleft" ></div>
-			</div>
+		if(($action == "archive" || $collection != 0) && $publishedresources > 0)
+			{?>
+			<input type="submit" name="archive" onclick="document.getElementById('falcon_action').value='archive';" value="<?php echo htmlspecialchars($lang["falcon_link_archive_button_text"]);?>" />
 			<?php
 			}?>
-		
+			<div class="clearerleft" ></div>
+		</div>
 		<input type="hidden" name="collection" value="<?php echo htmlspecialchars($collection); ?>" />
 		<input type="hidden" name="resource" value="<?php echo htmlspecialchars($ref); ?>">
 		<input type="hidden" name="save" value="true">
