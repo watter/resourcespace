@@ -6751,7 +6751,7 @@ function generateAjaxToken($form_id)
 
     if(!$CSRF_enabled)
         {
-        return;
+        return "";
         }
 
     $identifier = htmlspecialchars($CSRF_token_identifier);
