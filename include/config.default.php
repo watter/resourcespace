@@ -3442,9 +3442,10 @@ $migrating_scrambled = false;
 ##################################################
 ############### Cross-Site Request Forgery (CSRF):
 ##################################################
-$CSRF_enabled          = false;
+$CSRF_enabled = false;
 $CSRF_token_identifier = "CSRFToken";
-$CSRF_no_redirects     = array();
-$CORS_whitelist        = array();
+// Allow other systems to make cross-origin requests. The elements of this configuration option should follow the 
+// "<scheme>://<hostname>" syntax
+$CORS_whitelist = array();
 ##################################################
 ##################################################
