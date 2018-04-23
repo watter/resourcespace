@@ -1528,6 +1528,11 @@ function display_field($n, $field, $newtab=false,$modal=false)
             {
             $selected_nodes = array();
             }
+        $user_set_values = array();
+        }
+    else
+        {
+        $user_set_values = getval('nodes', array());
         }
 
     /****************************** Errors on saving ***************************************/
@@ -1855,6 +1860,15 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
 		$found_end_month=$se[1];
 		$found_end_day=$se[2];
 		}
+        
+    // If the form has been submitted but data was not saved get the submitted values   
+    foreach(array("start_year", "start_month","start_day","end_year","end_month","end_day") as $subpart)
+        {
+        if(getval($name . "_" . $subpart,"") != "")
+            {
+            ${"found_" . $subpart} = getval($name . "_" . $subpart,"");
+            }
+        }
 	
 	if($daterange_edtf_support)
 		{
@@ -1872,8 +1886,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
         if($date_d_m_y)
             {  
             ?>
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_startday"><?php echo $lang["day"]; ?></label>
-            <select name="<?php echo $name?>_startday"
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_start_day"><?php echo $lang["day"]; ?></label>
+            <select name="<?php echo $name?>_start_day"
              <?php if ($chosen_dropdowns && $tabs_on_edit) {?>class="ChosenDateDay"<?php }
             if ($forsearch && $autoupdate) 
                     { ?>onChange="UpdateResultCount();"<?php }
@@ -1889,8 +1903,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
                 }
               ?>
             </select>
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_startmonth"><?php echo $lang["month"]; ?></label>
-            <select name="<?php echo $name?>_startmonth"
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_start_month"><?php echo $lang["month"]; ?></label>
+            <select name="<?php echo $name?>_start_month"
                 <?php if ($chosen_dropdowns && $tabs_on_edit) {?>class="ChosenDateMonth"<?php }
                 if ($forsearch && $autoupdate) 
                     { ?>onChange="UpdateResultCount();"<?php }
@@ -1910,8 +1924,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
         else
             { 
             ?>		
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_startmonth"><?php echo $lang["month"]; ?></label>
-            <select name="<?php echo $name?>_startmonth"
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_start_month"><?php echo $lang["month"]; ?></label>
+            <select name="<?php echo $name?>_start_month"
                 <?php if ($chosen_dropdowns && $tabs_on_edit) {?>class="ChosenDateMonth"<?php }
                 if ($forsearch && $autoupdate) 
                     { ?>onChange="UpdateResultCount();"<?php }
@@ -1926,8 +1940,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
                     ?><option <?php if ($d==$found_start_month) { ?>selected<?php } ?> value="<?php echo $m?>"><?php echo $lang["months"][$d-1]?></option><?php
                     }?>
             </select>
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_startday"><?php echo $lang["day"]; ?></label>
-            <select name="<?php echo $name?>_startday"
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_start_day"><?php echo $lang["day"]; ?></label>
+            <select name="<?php echo $name?>_start_day"
               <?php if ($chosen_dropdowns && $tabs_on_edit) {?>class="ChosenDateDay"<?php }
                 if ($forsearch && $autoupdate) 
                     { ?>onChange="UpdateResultCount();"<?php }
@@ -1947,8 +1961,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
             }
         if($forsearch)
             {?>
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_endyear"><?php echo $lang["year"]; ?></label>
-            <select name="<?php echo htmlspecialchars($name) ?>_startyear"
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_end_year"><?php echo $lang["year"]; ?></label>
+            <select name="<?php echo htmlspecialchars($name) ?>_start_year"
                 <?php if ($chosen_dropdowns && $tabs_on_edit) {?>class="ChosenDateMonth"<?php } 
                 if ($forsearch && $autoupdate) 
                         { ?>onChange="UpdateResultCount();"<?php }
@@ -1967,8 +1981,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
             }
         else
             {?>
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_endyear"><?php echo $lang["year"]; ?></label>
-            <input size="5" name="<?php echo htmlspecialchars($name) ?>_startyear" id="<?php echo htmlspecialchars($name) ?>_startyear" type="text" value="<?php echo $found_start_year ?>"
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_end_year"><?php echo $lang["year"]; ?></label>
+            <input size="5" name="<?php echo htmlspecialchars($name) ?>_start_year" id="<?php echo htmlspecialchars($name) ?>_start_year" type="text" value="<?php echo $found_start_year ?>"
                 <?php
                 if ($forsearch && $autoupdate)
                     { ?>onChange="UpdateResultCount();"<?php }
@@ -1993,8 +2007,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
         if($date_d_m_y)
             {
             ?>
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_endday"><?php echo $lang["day"]; ?></label>
-            <select name="<?php echo $name?>_endday"
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_end_day"><?php echo $lang["day"]; ?></label>
+            <select name="<?php echo $name?>_end_day"
               <?php if ($chosen_dropdowns && $tabs_on_edit) {?>class="ChosenDateDay"<?php }
                 if ($forsearch && $autoupdate) 
                     { ?>onChange="UpdateResultCount();"<?php }
@@ -2009,8 +2023,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
                     ?><option <?php if ($d==$found_end_day) { ?>selected<?php } ?> value="<?php echo $m?>"><?php echo $m?></option><?php
                     }?>
             </select>
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_endmonth"><?php echo $lang["month"]; ?></label>
-            <select name="<?php echo $name?>_endmonth"
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_end_month"><?php echo $lang["month"]; ?></label>
+            <select name="<?php echo $name?>_end_month"
                 <?php if ($chosen_dropdowns && $tabs_on_edit) {?>class="ChosenDateMonth"<?php }
                 if ($forsearch && $autoupdate) 
                     { ?>onChange="UpdateResultCount();"<?php }
@@ -2030,8 +2044,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
         else
             {
             ?>
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_endmonth"><?php echo $lang["month"]; ?></label>
-            <select name="<?php echo $name?>_endmonth"
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_end_month"><?php echo $lang["month"]; ?></label>
+            <select name="<?php echo $name?>_end_month"
                 <?php if ($chosen_dropdowns && $tabs_on_edit) {?>class="ChosenDateMonth"<?php }
                 if ($forsearch && $autoupdate) 
                     { ?>onChange="UpdateResultCount();"<?php }
@@ -2046,8 +2060,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
                     ?><option <?php if ($d==$found_end_month) { ?>selected<?php } ?> value="<?php echo $m?>"><?php echo $lang["months"][$d-1]?></option><?php
                     }?>
             </select>
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_endday"><?php echo $lang["day"]; ?></label>
-            <select name="<?php echo $name?>_endday"
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_end_day"><?php echo $lang["day"]; ?></label>
+            <select name="<?php echo $name?>_end_day"
               <?php if ($chosen_dropdowns && $tabs_on_edit) {?>class="ChosenDateDay"<?php }
                 if ($forsearch && $autoupdate) 
                     { ?>onChange="UpdateResultCount();"<?php }
@@ -2067,8 +2081,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
             }
         if($forsearch)
             {?>
-            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_endyear"><?php echo $lang["year"]; ?></label>
-            <select name="<?php echo $name?>_endyear" 
+            <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_end_year"><?php echo $lang["year"]; ?></label>
+            <select name="<?php echo $name?>_end_year" 
             <?php if ($forsearch && $autoupdate) { ?>onChange="UpdateResultCount();"<?php } 
                 else if (!$forsearch  && $edit_autosave)
                     {?>onChange="AutoSave('<?php echo $field["ref"]?>');"<?php } ?>
@@ -2086,8 +2100,8 @@ function render_date_range_field($name,$value,$forsearch=true, $autoupdate=false
                 }
             else
                 {?>
-                <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_endyear"><?php echo $lang["year"]; ?></label>
-                <input size="5" name="<?php echo htmlspecialchars($name) ?>_endyear" id="<?php echo htmlspecialchars($name) ?>_endyear" type="text" value="<?php echo $found_end_year ?>"
+                <label class="accessibility-hidden" for="<?php echo htmlspecialchars($name) ?>_end_year"><?php echo $lang["year"]; ?></label>
+                <input size="5" name="<?php echo htmlspecialchars($name) ?>_end_year" id="<?php echo htmlspecialchars($name) ?>_end_year" type="text" value="<?php echo $found_end_year ?>"
                     <?php
                     if ($forsearch && $autoupdate)
                         { ?>onChange="UpdateResultCount();"<?php }
