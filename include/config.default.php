@@ -3109,6 +3109,9 @@ $resource_edit_modal_from_view_modal=false;
 # Use the "preview" size on the resource view page
 $resource_view_use_pre = false;
 
+# Use the larger layout on the view page for certain file extensions.
+$resource_view_large_layout = array("jpg", "jpeg", "tif", "tiff");
+
 # Show geographical search results in a modal
 $geo_search_modal_results = true;
 

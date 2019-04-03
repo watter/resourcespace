@@ -3,16 +3,14 @@
 	cursor: hand;
 }
 
-#RecordDownload {
-	margin-right:20px;
-	
-}
-
 #ResourceWorkflowActions input {
 	width: 100%;
-	
 }
 
 #ResourceWorkflowTable {
     width: 100%;
+}
+
+#ResourceWorkflowActions {
+    margin-right: 0;
 }
