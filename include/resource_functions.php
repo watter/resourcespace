@@ -2642,16 +2642,19 @@ function write_metadata($path, $ref, $uniqid="")
 
         //$write_to = get_exiftool_fields($resource_type); # Returns an array of exiftool fields for the particular resource type, which are basically fields with an 'exiftool field' set.
         $metadata_all=get_resource_field_data($ref, false,true,-1,getval("k","")!=""); // Using get_resource_field_data means we honour field permissions
-		
+        $read_only_fields = array_column(array_filter($metadata_all, function($value) {
+            return ((bool) $value['read_only'] == true);
+        }), 'ref');
+
         $write_to=array();
         foreach($metadata_all as $metadata_item)
             {
-            if(trim($metadata_item["exiftool_field"])!="")
+            if(trim($metadata_item["exiftool_field"]) != "" && !in_array($metadata_item['ref'], $read_only_fields))
                 {
-                $write_to[]= $metadata_item;
+                $write_to[] = $metadata_item;
                 }
             }
-        
+
         $writtenfields=array(); // Need to check if we are writing to an embedded field from more than one RS field, in which case subsequent values need to be appended, not replaced
            
         for($i = 0; $i<count($write_to); $i++) # Loop through all the found fields.
