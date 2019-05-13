@@ -1333,6 +1333,7 @@ $about_link=true;
 
 # When uploading resources (batch upload) and editing the template, should the date be reset to today's date?
 # If set to false, the previously entered date is used.
+# Please note that if upload_then_edit is enabled, then this will happen at upload stage in order to get the similar behaviour for this mode
 $reset_date_upload_template=true;
 $reset_date_field=12; # Which date field to reset? (if using multiple date fields)
 
@@ -3118,6 +3119,9 @@ $resource_edit_modal_from_view_modal=false;
 
 # Use the "preview" size on the resource view page
 $resource_view_use_pre = false;
+
+# Only use use the larger layout on the view page for certain file extensions.
+# $resource_view_large_ext = array("jpg", "jpeg", "tif", "tiff", "gif, "svg");
 
 # Show geographical search results in a modal
 $geo_search_modal_results = true;

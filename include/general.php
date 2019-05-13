@@ -1528,7 +1528,7 @@ function get_user($ref)
         if (isset($udata_cache[$ref])){
           $return=$udata_cache[$ref];
         } else {
-    $udata_cache[$ref]=sql_query("SELECT u.*, if(find_in_set('permissions',g.inherit_flags)>0 AND pg.permissions IS NOT NULL,pg.permissions,g.permissions) permissions, g.parent, g.search_filter, g.edit_filter, g.ip_restrict ip_restrict_group, g.name groupname, u.ip_restrict ip_restrict_user, u.search_filter_override, u.search_filter_o_id, g.resource_defaults,if(find_in_set('config_options',g.inherit_flags)>0 AND pg.config_options IS NOT NULL,pg.config_options,g.config_options) config_options,g.request_mode, g.derestrict_filter FROM user u LEFT JOIN usergroup g ON u.usergroup=g.ref LEFT JOIN usergroup pg ON g.parent=pg.ref WHERE u.ref='$ref'");
+    $udata_cache[$ref]=sql_query("SELECT u.*, if(find_in_set('permissions',g.inherit_flags)>0 AND pg.permissions IS NOT NULL,pg.permissions,g.permissions) permissions, g.parent, g.search_filter, g.edit_filter, g.ip_restrict ip_restrict_group, g.name groupname, u.ip_restrict ip_restrict_user, u.search_filter_override, u.search_filter_o_id, g.resource_defaults,if(find_in_set('config_options',g.inherit_flags)>0 AND pg.config_options IS NOT NULL,pg.config_options,g.config_options) config_options,g.request_mode, g.derestrict_filter, g.search_filter_id FROM user u LEFT JOIN usergroup g ON u.usergroup=g.ref LEFT JOIN usergroup pg ON g.parent=pg.ref WHERE u.ref='$ref'");
     }
     
     # Return a user's credentials.
@@ -4212,11 +4212,13 @@ function check_access_key($resource,$key)
             SELECT user,
                    usergroup,
                    expires,
-                   password_hash
+                   password_hash, 
+                   access
               FROM external_access_keys
              WHERE resource = '$resource_escaped'
                AND access_key = '$key_escaped'
-               AND (expires IS NULL OR expires > now())");
+               AND (expires IS NULL OR expires > now())
+               ORDER BY access");
 
     if (count($keys)==0)
         {
@@ -4224,6 +4226,24 @@ function check_access_key($resource,$key)
         }
     else
         {
+        if($keys[0]["access"] == -1)
+            {
+            // If the resources have -1 as access they may have been added without the correct expiry etc.
+            sql_query("UPDATE external_access_keys ak
+                LEFT JOIN (SELECT * FROM external_access_keys ake WHERE access_key='$key_escaped' ORDER BY access DESC, expires ASC LIMIT 1) ake
+                    ON ake.access_key=ak.access_key
+                    AND ake.collection=ak.collection
+                SET ak.expires=ake.expires, 
+                    ak.access=ake.access,
+                    ak.usergroup=ake.usergroup,
+                    ak.email=ake.email,
+                    ak.password_hash=ake.password_hash
+                WHERE ak.access_key = '$key_escaped'
+                AND ak.access='-1'
+                AND ak.expires IS NULL");
+            return false;            
+            }
+
         if($keys[0]["password_hash"] != "" && PHP_SAPI != "cli")
             {
             // A share password has been set. Check if user has a valid cookie set

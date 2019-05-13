@@ -664,6 +664,13 @@ if ($_FILES)
                                     }
                                 }
 
+                            if($upload_then_edit && $reset_date_upload_template)
+                                {
+                                // If extracting embedded metadata than expect the date to be overriden as it would be if
+                                // upload_then_edit = false
+                                update_field($ref, $reset_date_field, date('Y-m-d H:i:s'));
+                                }
+
                             # Log this			
                             daily_stat("Resource upload",$ref);
                             
@@ -832,6 +839,10 @@ if ($_FILES)
 									// No resource found with the same filename
 									header('Content-Type: application/json');
                                     unlink($plfilepath);
+                                    if(file_exists($plupload_processed_filepath))
+                                        {
+                                        unlink($plupload_processed_filepath);
+                                        }
 									die('{"jsonrpc" : "2.0", "error" : {"code": 106, "message": "ERROR - no resource found with filename ' . $origuploadedfilename . '"}, "id" : "id"}');
 									}
 								else
@@ -853,6 +864,10 @@ if ($_FILES)
 										// Multiple resources found with the same filename
 										header('Content-Type: application/json');
                                         unlink($plfilepath);
+                                        if(file_exists($plupload_processed_filepath))
+                                            {
+                                            unlink($plupload_processed_filepath);
+                                            }
 										die('{"jsonrpc" : "2.0", "error" : {"code": 107, "message": "ERROR - multiple resources found with filename ' . $origuploadedfilename . '. Resource IDs : ' . $resourcelist . '"}, "id" : "id" }');
 										}
 									}

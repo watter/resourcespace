@@ -198,7 +198,7 @@ function save_resource_data($ref,$multi,$autosave_field="")
                             $new_nodevals[] = $node_options[$ui_selected_node_value];
                             }
                         $new_nodes_val = implode($new_nodevals,",");
-                        sql_query("update resource set field".$fields[$n]["ref"]."='".escape_check(truncate_join_field_value(substr($new_nodes_val,1)))."' where ref='$ref'");
+                        sql_query("update resource set field".$fields[$n]["ref"]."='".escape_check(truncate_join_field_value(strip_leading_comma($new_nodes_val)))."' where ref='$ref'");
                         }
 					}
 
@@ -2282,9 +2282,9 @@ function resource_log($resource, $type, $field, $notes="", $fromvalue="", $toval
         }
 
     // Avoid out of memory errors such as when working with large PDF files
-    if(strlen($diff)>10000)
+    if(mb_strlen($diff) > 10000)
         {
-        $diff = mb_substr($diff,10000);
+        $diff = mb_strcut($diff, 0, 10000);
         }
 
 	$modifiedlogtype=hook("modifylogtype","",array($type));
@@ -2763,7 +2763,7 @@ function write_metadata($path, $ref, $uniqid="")
                         if($exifappend && ($writevalue=="" || ($writevalue!="" && strpos($writtenfields[$group_tag],$writevalue)!==false)))
                             {                                                            
                             // The new value is blank or already included in what is being written, skip to next group tag
-                            continue;                                
+                            continue 2; # @see https://www.php.net/manual/en/control-structures.continue.php note
                             }                               
                         $writtenfields[$group_tag]=$writevalue;                          
                         debug ("write_metadata - updating tag " . $group_tag);
